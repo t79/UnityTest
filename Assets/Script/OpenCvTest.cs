@@ -8,6 +8,7 @@ public class OpenCvTest : MonoBehaviour {
 
 	public string imageFilePath = "";
 	public int squareSize = 20;
+	public int iteration = 30000;
 
 	public void RunScript() {
 
@@ -46,7 +47,7 @@ public class OpenCvTest : MonoBehaviour {
 
 		Vector2 drawingCanvasSize = new Vector2 (canvas.Width - squareSize, canvas.Height - squareSize);
 
-		for (int i = 0; i < 30000; ++i) {
+		for (int i = 0; i < iteration; ++i) {
 
 			OpenCvSharp.Rect drawingRegion = new OpenCvSharp.Rect (
 				                                (int)Random.Range (0, drawingCanvasSize.x - 1), 
