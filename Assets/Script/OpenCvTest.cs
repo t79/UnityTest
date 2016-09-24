@@ -7,6 +7,7 @@ using OpenCvSharp;
 public class OpenCvTest : MonoBehaviour {
 
 	public string imageFilePath = "";
+	public int squareSize = 20;
 
 	public void RunScript() {
 
@@ -35,13 +36,30 @@ public class OpenCvTest : MonoBehaviour {
 //		Cv2.ImShow ("subImage", subImage);
 //		Cv2.ImShow ("Image2", image);
 
-		Mat imageGray = image.CvtColor (ColorConversionCodes.BGR2GRAY) / 4;
+		Mat imageGray = image.CvtColor (ColorConversionCodes.BGR2GRAY) / 10;
 
 		// NB! EmptyClone do not overwrite memory, old contntent in memory makes glitch's
 		//Mat canvas = imageGray.EmptyClone ();    
 		Mat canvas = Mat.Zeros(imageGray.Size(), imageGray.Type());
 
-		Cv2.ImShow ("Image2", canvas);
+
+
+		Vector2 drawingCanvasSize = new Vector2 (canvas.Width - squareSize, canvas.Height - squareSize);
+
+		for (int i = 0; i < 30000; ++i) {
+
+			OpenCvSharp.Rect drawingRegion = new OpenCvSharp.Rect (
+				                                (int)Random.Range (0, drawingCanvasSize.x - 1), 
+				                                (int)Random.Range (0, drawingCanvasSize.y - 1), 
+				                                squareSize, squareSize);
+
+			Mat drawingCanvas = new Mat (canvas, drawingRegion);
+			Mat drawingSource = new Mat (imageGray, drawingRegion);
+
+			Cv2.Add (drawingCanvas, drawingSource, drawingCanvas);
+
+			Cv2.ImShow ("Image2", canvas);
+		}
 
 	}
 
