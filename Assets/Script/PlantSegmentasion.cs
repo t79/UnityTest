@@ -123,6 +123,16 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	private void MakeGrayscaleImage() {
 
+//		if (plantImageBGR == null || plantImageBGR.Empty ()) {
+//			Debug.Log ("Grayscale image not generated, error with the color image");
+//			return;
+//		}
+
+		Mat plantImageLAB = plantImageBGR.CvtColor (ColorConversionCodes.BGR2Lab);
+
+		Mat[] plantLabChannels = Cv2.Split (plantImageLAB);
+		plantImageGray = Cv2.Abs (plantLabChannels [1] - plantLabChannels [2]);
+
 	}
 
 	private void ReduceSegmentasionResolution() {
