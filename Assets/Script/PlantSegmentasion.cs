@@ -138,7 +138,8 @@ public class PlantSegmentasion : MonoBehaviour {
 	}
 
 	private void ReduceSegmentasionResolution() {
-
+		float scale = 1.0f / reductionFactor;
+		Cv2.Resize (plantImageGray, plantImageGray, new Size (0, 0), scale, scale, InterpolationFlags.Linear); 
 	}
 
 	private void MaskSegmentasionImage() {
