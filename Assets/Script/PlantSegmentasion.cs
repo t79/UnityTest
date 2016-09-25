@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.IO;
 using OpenCvSharp;
 
 public class PlantSegmentasion : MonoBehaviour {
@@ -27,6 +28,7 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		if (!LoadImages()) {
 			Debug.Log ("Loading of images failed! Segmentasion aborted");
+			return;
 		}
 
 		MakeGrayscaleImage ();
@@ -76,12 +78,12 @@ public class PlantSegmentasion : MonoBehaviour {
 						continue;
 					}
 
-					Mat matchingAreaMat = new Mat (PlantEdges, templetGenerator.GetMatchingRect ());
+					Mat matchingAreaMat = new Mat (plantEdges, templetGenerator.GetMatchingRect ());
 					Mat templet = templetGenerator.GetTempletMat ();
 
 					OpenCvSharp.Rect matchingResultRect = new OpenCvSharp.Rect (new Point (0, 0), templetGenerator.GetMatchingResultSize ());
 					Mat matchingResultSubMat = new Mat (matchinResultMat, matchingResultRect);
-					matchingResultSubMat.SetTo (new Scalar (0));
+					matchingResultSubMat.SetTo (new Scalar(0), null);
 
 					Cv2.MatchTemplate (matchingAreaMat, templet, matchingResultSubMat, TemplateMatchModes.CCorrNormed);
 
@@ -96,7 +98,27 @@ public class PlantSegmentasion : MonoBehaviour {
 	}
 
 	private bool LoadImages() {
-		return false;
+
+		// Checking that the files exist.
+		if (!File.Exists (plantImageFilePath) || !File.Exists(plantMaskFilePath)) {
+			Debug.Log ("Image or mask File do not exist!");
+			return false;
+		}
+
+		plantImageBGR = Cv2.ImRead (plantImageFilePath, ImreadModes.Color);
+		plantMask = Cv2.ImRead (plantMaskFilePath, ImreadModes.GrayScale);
+
+		if (plantImageBGR.Empty()) {
+			Debug.Log ("No readable plant image file: " + plantImageFilePath);
+			return false;
+		}
+
+		if (plantMask.Empty()) {
+			Debug.Log ("No readable plant mask file: " + plantMaskFilePath);
+			return false;
+		}
+
+		return true;
 	}
 
 	private void MakeGrayscaleImage() {
@@ -124,7 +146,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	}
 
 	private int CalculateMaxTempletSize() {
-
+		return 0;
 	}
 }
 
@@ -143,19 +165,19 @@ class TempletGenerater {
 	}
 	
 	public OpenCvSharp.Rect GetMatchingRect() {
-	
+		return new OpenCvSharp.Rect ();
 	}
 
 	public Mat GetTempletMat() {
-
+		return new Mat ();
 	}
 
 	public bool toSmallMatchingArea () {
-
+		return false;
 	}
 
 	public Size GetMatchingResultSize () {
-
+		return new Size (0, 0);
 	}
 
 }
