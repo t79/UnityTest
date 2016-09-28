@@ -278,7 +278,10 @@ class TempletGenerater {
 	}
 
 	public void SetSize(int size) {
-
+		for (int i = 0; i < contours [0].Length; ++i) {
+			contourScaled [i].X = contourNormalized [i].X * size;
+			contourScaled [i].Y = contourNormalized [i].Y * size;
+		}
 	}
 
 	public void SetRotasionStep(int rotStep) {
