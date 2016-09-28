@@ -143,7 +143,10 @@ public class PlantSegmentasion : MonoBehaviour {
 	}
 
 	private void MaskSegmentasionImage() {
-
+		if (plantMask.Size() != plantSegmentasionImage.Size()) {
+			Cv2.Resize (plantMask, plantMask, plantSegmentasionImage.Size (), 0, 0, InterpolationFlags.Linear);
+		}
+		Cv2.BitwiseAnd (plantSegmentasionImage, plantMask, plantSegmentasionImage);
 	}
 
 	private void CropSegmentasionImage() {
