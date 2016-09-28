@@ -64,7 +64,7 @@ public class PlantSegmentasion : MonoBehaviour {
 					plantSegmentasionImage.Type(), 
 					numRotationSteps, 
 					plantSegmentasionCenter,
-					(plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * plantCenterSizeRatio);
+					(int)((plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * plantCenterSizeRatio));
 
 		Mat matchinResultMat = Mat.Zeros(plantEdges.Size(), plantEdges.Type());
 
@@ -157,8 +157,8 @@ public class PlantSegmentasion : MonoBehaviour {
 		float scale = 1.0f / reductionFactor;
 		Cv2.Resize (plantSegmentasionImage, plantSegmentasionImage, new Size (0, 0), scale, scale, InterpolationFlags.Linear);
 
-		plantSegmentasionCenter.X *= scale;
-		plantSegmentasionCenter.Y *= scale;
+		plantSegmentasionCenter.X = (int)(plantSegmentasionCenter.X * scale);
+		plantSegmentasionCenter.Y = (int)(plantSegmentasionCenter.Y * scale);
 	}
 
 	private void MaskSegmentasionImage() {
