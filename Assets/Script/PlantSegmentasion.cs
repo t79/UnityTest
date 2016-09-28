@@ -227,6 +227,14 @@ class TempletGenerater {
 	private Point2f[] contourNormalized;
 	private Point2f[] contourScaled;
 
+	private int templetCenter;
+	private RotatPoint rotatPoint;
+
+	public TempletGenerater(int maxTempletSize, int numRotationSteps) {
+		this.templetCenter = maxTempletSize / 2; 
+		rotatPoint = new RotatPoint (numRotationSteps);
+	}
+
 	public bool LoadShape(string shapePath) {
 
 		if (!File.Exists (shapePath)) {
@@ -285,6 +293,10 @@ class TempletGenerater {
 	}
 
 	public void SetRotasionStep(int rotStep) {
+		for (int i = 0; i < contours [0].Length; ++i) {
+			contours [0] [i].X = (int)rotatPoint.rotatX (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
+			contours [0] [i].Y = (int)rotatPoint.rotatY (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
+		}
 
 	}
 	
@@ -304,4 +316,30 @@ class TempletGenerater {
 		return new Size (0, 0);
 	}
 
+}
+
+public class RotatPoint {
+	struct cosSin {
+		public float cos, sin;
+	}
+	cosSin[] rotStepCosSin;
+
+	public RotatPoint(int numberOfRotationSteps) {
+		rotStepCosSin = new cosSin[numberOfRotationSteps];
+		float theta;
+		float stepToRadianFactor = 360.0f / numberOfRotationSteps * 2 * Mathf.PI / 360;
+		for (int i = 0; i < numberOfRotationSteps; ++i) {
+			theta = i * stepToRadianFactor;
+			rotStepCosSin [i].cos = Mathf.Cos (theta);
+			rotStepCosSin [i].sin = Mathf.Sin (theta);
+		}
+	}
+
+	public float rotatX(float x, float y, int step) {
+		return x * rotStepCosSin [step].cos - y * rotStepCosSin [step].sin;
+	}
+
+	public float rotatY(float x, float y, int step) {
+		return x * rotStepCosSin [step].sin + y * rotStepCosSin [step].cos;
+	}
 }
