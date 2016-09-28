@@ -24,6 +24,8 @@ public class PlantSegmentasion : MonoBehaviour {
 	private Mat plantMask;
 	private Mat plantEdges;
 
+	private OpenCvSharp.Rect plantBounds;
+
 	public void RunSegmentasion() {
 
 		if (!LoadImages()) {
@@ -38,6 +40,7 @@ public class PlantSegmentasion : MonoBehaviour {
 		}
 	
 		MaskSegmentasionImage ();
+		FindPlantBounds ();
 		CropSegmentasionImage ();
 
 		MakeEdgeMat ();
@@ -147,6 +150,11 @@ public class PlantSegmentasion : MonoBehaviour {
 			Cv2.Resize (plantMask, plantMask, plantSegmentasionImage.Size (), 0, 0, InterpolationFlags.Linear);
 		}
 		Cv2.BitwiseAnd (plantSegmentasionImage, plantMask, plantSegmentasionImage);
+	}
+
+	private void FindPlantBounds() {
+		Mat invertMask = 255 - plantMask;
+		plantBounds = Cv2.BoundingRect (invertMask);
 	}
 
 	private void CropSegmentasionImage() {
