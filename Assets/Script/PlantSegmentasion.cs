@@ -9,6 +9,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	public string plantMaskFilePath = "";
 
 	public int reductionFactor = 4;
+	public float plantPadding = 0.2f;
 	public int numRotationSteps = 24;
 
 	public string[] templetShapePath;
@@ -153,12 +154,33 @@ public class PlantSegmentasion : MonoBehaviour {
 	}
 
 	private void FindPlantBounds() {
-		Mat invertMask = 255 - plantMask;
-		plantBounds = Cv2.BoundingRect (invertMask);
+		Mat nonZero = new Mat ();
+		Cv2.FindNonZero (plantSegmentasionImage, nonZero);
+		plantBounds = Cv2.BoundingRect (nonZero);
 	}
 
 	private void CropSegmentasionImage() {
 
+		int roiX = plantBounds.X - (int)(plantBounds.Width * plantPadding);
+		if (roiX < 0) {
+			roiX = 0;
+		}
+		int roiY = plantBounds.Y - (int)(plantBounds.Height * plantPadding);
+		if (roiY < 0) {
+			roiY = 0;
+		}
+		int roiWidth = plantBounds.Width + (int)(plantBounds.Width * plantPadding * 2);
+		if (roiWidth + roiX > plantSegmentasionImage.Width) {
+			roiWidth = plantSegmentasionImage.Width - roiX;
+		}
+		int roiHeight = plantBounds.Height + (int)(plantBounds.Height * plantPadding * 2);
+		if (roiHeight + roiY > plantSegmentasionImage.Height) {
+			roiHeight = plantSegmentasionImage.Height - roiY;
+		}
+
+		OpenCvSharp.Rect roi = new OpenCvSharp.Rect (roiX, roiY, roiWidth, roiHeight);
+
+		plantSegmentasionImage = new Mat (plantSegmentasionImage, roi);
 	}
 
 	private void MakeEdgeMat() {
