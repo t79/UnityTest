@@ -46,6 +46,8 @@ public class PlantSegmentasion : MonoBehaviour {
 			GenerateNewTempletSizes (10);
 		}
 
+		showImages ();
+
 		int maxTempletSize = CalculateMaxTempletSize ();
 
 		TempletGenerater templetGenerator = new TempletGenerater ();
@@ -157,6 +159,17 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	private int CalculateMaxTempletSize() {
 		return 0;
+	}
+
+	private void showImages() {
+
+		Cv2.NamedWindow ("Color image", WindowMode.KeepRatio);
+		Cv2.NamedWindow ("Mask image", WindowMode.KeepRatio);
+		Cv2.NamedWindow ("Gray image", WindowMode.KeepRatio);
+
+		Cv2.ImShow ("Color image", plantImageBGR);
+		Cv2.ImShow ("Mask image", plantMask);
+		Cv2.ImShow ("Gray image", plantImageGray);
 	}
 }
 
