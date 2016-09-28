@@ -14,7 +14,7 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	public string[] templetShapePath;
 
-	public float maxTempletPlantRatio = 0.8;
+	public float maxTempletPlantRatio = 0.8f;
 	public int[] templetSizes;
 
 	public float matchingTreshold;
@@ -223,8 +223,58 @@ public class PlantSegmentasion : MonoBehaviour {
 
 class TempletGenerater {
 
+	private Point[][] contours;
+	private Point2f[] contourNormalized;
+	private Point2f[] contourScaled;
+
 	public bool LoadShape(string shapePath) {
-		return false;
+
+		if (!File.Exists (shapePath)) {
+			Debug.Log ("Shape File do not exist!");
+			return false;
+		}
+
+		Mat shapeImage = Cv2.ImRead (shapePath, ImreadModes.GrayScale);
+
+		if (shapeImage.Empty()) {
+			Debug.Log ("No readable shape file: " + shapePath);
+			return false;
+		}
+
+		Cv2.CopyMakeBorder (shapeImage, shapeImage, 10, 10, 10, 10, BorderTypes.Constant);
+
+		shapeImage = 255 - shapeImage;
+
+		Cv2.Erode (shapeImage, shapeImage, new Mat (), new Point (-1, -1), 5);
+		Cv2.Dilate (shapeImage, shapeImage, new Mat (), new Point (-1, -1), 5);
+
+		Mat shapeEdges = new Mat ();
+		Cv2.Canny (shapeImage, shapeEdges, 100, 200, 3, false);
+
+		HierarchyIndex[] contoure_hierarcyInd;
+		Cv2.FindContours (shapeEdges, out contours, out contoure_hierarcyInd, RetrievalModes.External, ContourApproximationModes.ApproxTC89L1);
+
+		if (contours.Length > 1) {
+			Debug.Log ("Dont know witch contour to use.");
+			return false;
+		}
+
+		Point2f center;
+		float radius;
+
+		Cv2.MinEnclosingCircle (contours [0], out center, out radius);
+
+		float diameter = radius * 2;
+
+		contourNormalized = new Point2f[contours [0].Length];
+		contourScaled = new Point2f[contours [0].Length];
+
+		for (int i = 0; i < contours [0].Length; ++i) {
+			contourNormalized [i] = new Point2f ((contours [0] [i].X - center.X) / diameter, (contours [0] [i].Y - center.Y) / diameter);
+			contourScaled [i] = new Point2f ();
+		}
+
+		return true;
 	}
 
 	public void SetSize(int size) {
