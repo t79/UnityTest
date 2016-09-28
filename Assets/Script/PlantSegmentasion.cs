@@ -8,6 +8,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	public string plantImageFilePath = "";
 	public string plantMaskFilePath = "";
 	public Vector2 plantCenter;
+	public float plantCenterSizeRatio = 0.2f;
 
 	public int reductionFactor = 4;
 	public float plantPadding = 0.2f;
@@ -58,7 +59,12 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		int maxTempletSize = CalculateMaxTempletSize ();
 
-		TempletGenerater templetGenerator = new TempletGenerater(maxTempletSize, plantSegmentasionImage.Type(), numRotationSteps, plantSegmentasionCenter);
+		TempletGenerater templetGenerator = 
+			new TempletGenerater(maxTempletSize, 
+					plantSegmentasionImage.Type(), 
+					numRotationSteps, 
+					plantSegmentasionCenter,
+					(plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * plantCenterSizeRatio);
 
 		Mat matchinResultMat = Mat.Zeros(plantEdges.Size(), plantEdges.Type());
 
@@ -241,13 +247,21 @@ class TempletGenerater {
 	private RotatPoint rotatPoint;
 
 	private Point plantCenter;
+	private int plantCenterWidth;
 
 	private Mat templet;
 	private Mat templetMat;
 
-	public TempletGenerater(int maxTempletSize, MatType matType,  int numRotationSteps, Point plantCenter) {
+	public TempletGenerater(
+				int maxTempletSize, 
+				MatType matType,  
+				int numRotationSteps, 
+				Point plantCenter, 
+				int plantCenterWidth) {
+
 		this.templetCenter = maxTempletSize / 2; 
 		this.plantCenter = plantCenter;
+		this.plantCenterWidth = plantCenterWidth;
 		rotatPoint = new RotatPoint (numRotationSteps);
 		templetMat = Mat.Zeros (maxTempletSize, maxTempletSize, matType);
 	}
