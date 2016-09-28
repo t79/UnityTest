@@ -9,6 +9,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	public string plantMaskFilePath = "";
 	public Vector2 plantCenter;
 	public float plantCenterSizeRatio = 0.2f;
+	public float maxSteamLengthRatio = 1.0f;
 
 	public int reductionFactor = 4;
 	public float plantPadding = 0.2f;
@@ -64,7 +65,8 @@ public class PlantSegmentasion : MonoBehaviour {
 					plantSegmentasionImage.Type(), 
 					numRotationSteps, 
 					plantSegmentasionCenter,
-					(int)((plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * plantCenterSizeRatio));
+					(int)((plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * plantCenterSizeRatio),
+					maxSteamLengthRatio);
 
 		Mat matchinResultMat = Mat.Zeros(plantEdges.Size(), plantEdges.Type());
 
@@ -248,6 +250,11 @@ class TempletGenerater {
 
 	private Point plantCenter;
 	private int plantCenterWidth;
+	private float maxSteamLengthRatio;
+
+	private Point2f[] steam;
+	private Point2f[] steamNormalized;
+	private Point2f[] steamScaled;
 
 	private Mat templet;
 	private Mat templetMat;
@@ -257,11 +264,13 @@ class TempletGenerater {
 				MatType matType,  
 				int numRotationSteps, 
 				Point plantCenter, 
-				int plantCenterWidth) {
+				int plantCenterWidth,
+				float maxSteamLengthRatio) {
 
 		this.templetCenter = maxTempletSize / 2; 
 		this.plantCenter = plantCenter;
 		this.plantCenterWidth = plantCenterWidth;
+		this.maxSteamLengthRatio = maxSteamLengthRatio;
 		rotatPoint = new RotatPoint (numRotationSteps);
 		templetMat = Mat.Zeros (maxTempletSize, maxTempletSize, matType);
 	}
@@ -313,6 +322,20 @@ class TempletGenerater {
 			contourScaled [i] = new Point2f ();
 		}
 
+		steam = new Point2f[2];
+		steamNormalized = new Point2f[2];
+		steamScaled = new Point2f[2];
+
+		steam [0] = new Point2f(center.X, center.Y);
+		steam [0].Y += radius;
+		steam [1] = new Point2f(steam [0].X, steam[0].Y);
+		steam [1].Y += diameter * maxSteamLengthRatio;
+
+		for (int i = 0; i < steam.Length; ++i) {
+			steamNormalized [i] = new Point2f ((steam [i].X - center.X) / diameter, (steam [i].Y - center.Y) / diameter);
+			steamScaled [i] = new Point2f ();
+		}
+
 		return true;
 	}
 
@@ -321,12 +344,22 @@ class TempletGenerater {
 			contourScaled [i].X = contourNormalized [i].X * size;
 			contourScaled [i].Y = contourNormalized [i].Y * size;
 		}
+
+		for (int i = 0; i < steam.Length; ++i) {
+			steamScaled [i].X = steamNormalized [i].X * size;
+			steamScaled [i].Y = steamNormalized [i].Y * size;
+		}
 	}
 
 	public void SetRotasionStep(int rotStep) {
 		for (int i = 0; i < contours [0].Length; ++i) {
 			contours [0] [i].X = (int)rotatPoint.rotatX (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
 			contours [0] [i].Y = (int)rotatPoint.rotatY (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
+		}
+
+		for (int i = 0; i < steam.Length; ++i) {
+			steam [i].X = (int)rotatPoint.rotatX (steamScaled [i].X, steamScaled [i].Y, rotStep) + templetCenter;
+			steam [i].Y = (int)rotatPoint.rotatY (steamScaled [i].X, steamScaled [i].Y, rotStep) + templetCenter;
 		}
 
 		OpenCvSharp.Rect boundBox = Cv2.BoundingRect (contours [0]);
