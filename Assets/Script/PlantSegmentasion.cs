@@ -20,7 +20,7 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	// image matrixes
 	private Mat plantImageBGR;
-	private Mat plantImageGray;
+	private Mat plantSegmentasionImage;
 	private Mat plantMask;
 	private Mat plantEdges;
 
@@ -31,7 +31,7 @@ public class PlantSegmentasion : MonoBehaviour {
 			return;
 		}
 
-		MakeGrayscaleImage ();
+		MakeSegmentasionImage ();
 
 		if (reductionFactor > 1) {
 			ReduceSegmentasionResolution ();
@@ -123,7 +123,7 @@ public class PlantSegmentasion : MonoBehaviour {
 		return true;
 	}
 
-	private void MakeGrayscaleImage() {
+	private void MakeSegmentasionImage() {
 
 //		if (plantImageBGR == null || plantImageBGR.Empty ()) {
 //			Debug.Log ("Grayscale image not generated, error with the color image");
@@ -133,13 +133,13 @@ public class PlantSegmentasion : MonoBehaviour {
 		Mat plantImageLAB = plantImageBGR.CvtColor (ColorConversionCodes.BGR2Lab);
 
 		Mat[] plantLabChannels = Cv2.Split (plantImageLAB);
-		plantImageGray = Cv2.Abs (plantLabChannels [1] - plantLabChannels [2]);
+		plantSegmentasionImage = Cv2.Abs (plantLabChannels [1] - plantLabChannels [2]);
 
 	}
 
 	private void ReduceSegmentasionResolution() {
 		float scale = 1.0f / reductionFactor;
-		Cv2.Resize (plantImageGray, plantImageGray, new Size (0, 0), scale, scale, InterpolationFlags.Linear); 
+		Cv2.Resize (plantSegmentasionImage, plantSegmentasionImage, new Size (0, 0), scale, scale, InterpolationFlags.Linear); 
 	}
 
 	private void MaskSegmentasionImage() {
@@ -166,11 +166,11 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		Cv2.NamedWindow ("Color image", WindowMode.KeepRatio);
 		Cv2.NamedWindow ("Mask image", WindowMode.KeepRatio);
-		Cv2.NamedWindow ("Gray image", WindowMode.KeepRatio);
+		Cv2.NamedWindow ("Segmentasion image", WindowMode.KeepRatio);
 
 		Cv2.ImShow ("Color image", plantImageBGR);
 		Cv2.ImShow ("Mask image", plantMask);
-		Cv2.ImShow ("Gray image", plantImageGray);
+		Cv2.ImShow ("Segmentasion image", plantSegmentasionImage);
 	}
 }
 
