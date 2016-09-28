@@ -13,6 +13,8 @@ public class PlantSegmentasion : MonoBehaviour {
 	public int numRotationSteps = 24;
 
 	public string[] templetShapePath;
+
+	public float maxTempletPlantRatio = 0.8;
 	public int[] templetSizes;
 
 	public float matchingTreshold;
@@ -202,7 +204,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	}
 
 	private int CalculateMaxTempletSize() {
-		return 0;
+		return (int)((plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * maxTempletPlantRatio);
 	}
 
 	private void showImages() {
