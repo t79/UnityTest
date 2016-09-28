@@ -185,6 +185,16 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	private void MakeEdgeMat() {
 
+		Mat sobelX = new Mat ();
+		Cv2.Sobel (plantSegmentasionImage, sobelX, MatType.CV_16S, 1, 0, 3);
+		Cv2.ConvertScaleAbs (sobelX, sobelX);
+
+		Mat sobelY = new Mat ();
+		Cv2.Sobel (plantSegmentasionImage, sobelY, MatType.CV_16S, 0, 1, 3);
+		Cv2.ConvertScaleAbs (sobelY, sobelY);
+
+		plantEdges = new Mat (); //Mat.Zeros(plantSegmentasionImage.Size(), plantSegmentasionImage.Type());
+		Cv2.AddWeighted (sobelX, 0.5, sobelY, 0.5, 0, plantEdges);
 	}
 
 	private void GenerateNewTempletSizes(int numTemplets) {
@@ -200,10 +210,12 @@ public class PlantSegmentasion : MonoBehaviour {
 		Cv2.NamedWindow ("Color image", WindowMode.KeepRatio);
 		Cv2.NamedWindow ("Mask image", WindowMode.KeepRatio);
 		Cv2.NamedWindow ("Segmentasion image", WindowMode.KeepRatio);
+		Cv2.NamedWindow ("Edge image", WindowMode.KeepRatio);
 
 		Cv2.ImShow ("Color image", plantImageBGR);
 		Cv2.ImShow ("Mask image", plantMask);
 		Cv2.ImShow ("Segmentasion image", plantSegmentasionImage);
+		Cv2.ImShow ("Edge image", plantEdges);
 	}
 }
 
