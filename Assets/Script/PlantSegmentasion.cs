@@ -7,6 +7,7 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	public string plantImageFilePath = "";
 	public string plantMaskFilePath = "";
+	public Vector2 plantCenter;
 
 	public int reductionFactor = 4;
 	public float plantPadding = 0.2f;
@@ -24,6 +25,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	// image matrixes
 	private Mat plantImageBGR;
 	private Mat plantSegmentasionImage;
+	private Point plantSegmentasionCenter;
 	private Mat plantMask;
 	private Mat plantEdges;
 
@@ -56,7 +58,7 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		int maxTempletSize = CalculateMaxTempletSize ();
 
-		TempletGenerater templetGenerator = new TempletGenerater(maxTempletSize, plantSegmentasionImage.Type(), numRotationSteps);
+		TempletGenerater templetGenerator = new TempletGenerater(maxTempletSize, plantSegmentasionImage.Type(), numRotationSteps, plantSegmentasionCenter);
 
 		Mat matchinResultMat = Mat.Zeros(plantEdges.Size(), plantEdges.Type());
 
@@ -141,11 +143,16 @@ public class PlantSegmentasion : MonoBehaviour {
 		Mat[] plantLabChannels = Cv2.Split (plantImageLAB);
 		plantSegmentasionImage = Cv2.Abs (plantLabChannels [1] - plantLabChannels [2]);
 
+		plantSegmentasionCenter = new Point (plantCenter.x, plantCenter.y);
+
 	}
 
 	private void ReduceSegmentasionResolution() {
 		float scale = 1.0f / reductionFactor;
-		Cv2.Resize (plantSegmentasionImage, plantSegmentasionImage, new Size (0, 0), scale, scale, InterpolationFlags.Linear); 
+		Cv2.Resize (plantSegmentasionImage, plantSegmentasionImage, new Size (0, 0), scale, scale, InterpolationFlags.Linear);
+
+		plantSegmentasionCenter.X *= scale;
+		plantSegmentasionCenter.Y *= scale;
 	}
 
 	private void MaskSegmentasionImage() {
@@ -183,6 +190,9 @@ public class PlantSegmentasion : MonoBehaviour {
 		OpenCvSharp.Rect roi = new OpenCvSharp.Rect (roiX, roiY, roiWidth, roiHeight);
 
 		plantSegmentasionImage = new Mat (plantSegmentasionImage, roi);
+
+		plantSegmentasionCenter.X -= roi.X;
+		plantSegmentasionCenter.Y -= roi.Y;
 	}
 
 	private void MakeEdgeMat() {
@@ -230,11 +240,14 @@ class TempletGenerater {
 	private int templetCenter;
 	private RotatPoint rotatPoint;
 
+	private Point plantCenter;
+
 	private Mat templet;
 	private Mat templetMat;
 
-	public TempletGenerater(int maxTempletSize, MatType matType,  int numRotationSteps) {
+	public TempletGenerater(int maxTempletSize, MatType matType,  int numRotationSteps, Point plantCenter) {
 		this.templetCenter = maxTempletSize / 2; 
+		this.plantCenter = plantCenter;
 		rotatPoint = new RotatPoint (numRotationSteps);
 		templetMat = Mat.Zeros (maxTempletSize, maxTempletSize, matType);
 	}
