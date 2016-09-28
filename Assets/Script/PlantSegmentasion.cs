@@ -56,7 +56,7 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		int maxTempletSize = CalculateMaxTempletSize ();
 
-		TempletGenerater templetGenerator = new TempletGenerater ();
+		TempletGenerater templetGenerator = new TempletGenerater(maxTempletSize, plantSegmentasionImage.Type(), numRotationSteps);
 
 		Mat matchinResultMat = Mat.Zeros(plantEdges.Size(), plantEdges.Type());
 
@@ -87,7 +87,7 @@ public class PlantSegmentasion : MonoBehaviour {
 					}
 
 					Mat matchingAreaMat = new Mat (plantEdges, templetGenerator.GetMatchingRect ());
-					Mat templet = templetGenerator.GetTempletMat ();
+					Mat templet = templetGenerator.GetTemplet ();
 
 					OpenCvSharp.Rect matchingResultRect = new OpenCvSharp.Rect (new Point (0, 0), templetGenerator.GetMatchingResultSize ());
 					Mat matchingResultSubMat = new Mat (matchinResultMat, matchingResultRect);
@@ -230,9 +230,13 @@ class TempletGenerater {
 	private int templetCenter;
 	private RotatPoint rotatPoint;
 
-	public TempletGenerater(int maxTempletSize, int numRotationSteps) {
+	private Mat templet;
+	private Mat templetMat;
+
+	public TempletGenerater(int maxTempletSize, MatType matType,  int numRotationSteps) {
 		this.templetCenter = maxTempletSize / 2; 
 		rotatPoint = new RotatPoint (numRotationSteps);
+		templetMat = Mat.Zeros (maxTempletSize, maxTempletSize, matType);
 	}
 
 	public bool LoadShape(string shapePath) {
@@ -298,14 +302,20 @@ class TempletGenerater {
 			contours [0] [i].Y = (int)rotatPoint.rotatY (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
 		}
 
+		OpenCvSharp.Rect boundBox = Cv2.BoundingRect (contours [0]);
+
+		templet = new Mat (templetMat, boundBox);
+		templet.SetTo (new Scalar (0), null);
+
+		Cv2.DrawContours (templetMat, contours, 0, new Scalar (255), 1, LineTypes.AntiAlias);
 	}
 	
 	public OpenCvSharp.Rect GetMatchingRect() {
 		return new OpenCvSharp.Rect ();
 	}
 
-	public Mat GetTempletMat() {
-		return new Mat ();
+	public Mat GetTemplet() {
+		return templet;
 	}
 
 	public bool toSmallMatchingArea () {
