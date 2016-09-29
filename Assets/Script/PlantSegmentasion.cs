@@ -66,7 +66,8 @@ public class PlantSegmentasion : MonoBehaviour {
 					numRotationSteps, 
 					plantSegmentasionCenter,
 					(int)((plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * plantCenterSizeRatio),
-					maxSteamLengthRatio);
+					maxSteamLengthRatio,
+					new OpenCvSharp.Rect(0, 0, plantSegmentasionImage.Width, plantSegmentasionImage.Height));
 
 		Mat matchinResultMat = Mat.Zeros(plantEdges.Size(), plantEdges.Type());
 
@@ -248,8 +249,8 @@ class TempletGenerater {
 	private int templetCenter;
 	private RotatPoint rotatPoint;
 
-	private Point plantCenter;
-	private int plantCenterWidth;
+	private int shiftDistance;
+	private Point uperPlantCenterCorner;
 	private float maxSteamLengthRatio;
 
 	private Point2f[] steam;
@@ -259,20 +260,31 @@ class TempletGenerater {
 	private Mat templet;
 	private Mat templetMat;
 
+	private Point[] matchingArea;
+	private OpenCvSharp.Rect matchingBoxRect;
+	private OpenCvSharp.Rect maxMatchingRect;
+
 	public TempletGenerater(
 				int maxTempletSize, 
 				MatType matType,  
 				int numRotationSteps, 
 				Point plantCenter, 
 				int plantCenterWidth,
-				float maxSteamLengthRatio) {
+				float maxSteamLengthRatio,
+				OpenCvSharp.Rect maxMatchingRect) {
 
 		this.templetCenter = maxTempletSize / 2; 
-		this.plantCenter = plantCenter;
-		this.plantCenterWidth = plantCenterWidth;
+		this.shiftDistance = plantCenterWidth / 2;
+		this.uperPlantCenterCorner = new Point (plantCenter.X - shiftDistance, plantCenter.Y - shiftDistance);
 		this.maxSteamLengthRatio = maxSteamLengthRatio;
+		this.maxMatchingRect = maxMatchingRect;
 		rotatPoint = new RotatPoint (numRotationSteps);
 		templetMat = Mat.Zeros (maxTempletSize, maxTempletSize, matType);
+
+		matchingArea = new Point[8];
+		for (int i = 0; i < matchingArea.Length; ++i) {
+			matchingArea [i] = new Point ();
+		}
 	}
 
 	public bool LoadShape(string shapePath) {
@@ -358,8 +370,8 @@ class TempletGenerater {
 		}
 
 		for (int i = 0; i < steam.Length; ++i) {
-			steam [i].X = (int)rotatPoint.rotatX (steamScaled [i].X, steamScaled [i].Y, rotStep) + templetCenter;
-			steam [i].Y = (int)rotatPoint.rotatY (steamScaled [i].X, steamScaled [i].Y, rotStep) + templetCenter;
+			steam [i].X = rotatPoint.rotatX (steamScaled [i].X, steamScaled [i].Y, rotStep) + templetCenter;
+			steam [i].Y = rotatPoint.rotatY (steamScaled [i].X, steamScaled [i].Y, rotStep) + templetCenter;
 		}
 
 		OpenCvSharp.Rect boundBox = Cv2.BoundingRect (contours [0]);
@@ -368,10 +380,63 @@ class TempletGenerater {
 		templet.SetTo (new Scalar (0), null);
 
 		Cv2.DrawContours (templetMat, contours, 0, new Scalar (255), 1, LineTypes.AntiAlias);
+
+
+		matchingArea [0].X = (int)steam [1].X - shiftDistance;
+		matchingArea [0].Y = (int)steam [1].Y - shiftDistance;
+		matchingArea [1].X = matchingArea [0].X;
+		matchingArea [1].Y = (int)steam [1].Y + shiftDistance;
+		matchingArea [2].X = (int)steam [1].X + shiftDistance;
+		matchingArea [2].Y = matchingArea [1].Y;
+		matchingArea [3].X = matchingArea [2].X;
+		matchingArea [3].Y = matchingArea [0].Y;
+
+		matchingArea [4].X = boundBox.X - shiftDistance;
+		matchingArea [4].Y = boundBox.Y - shiftDistance;
+		matchingArea [5].X = matchingArea [4].X;
+		matchingArea [5].Y = boundBox.Y + boundBox.Height + shiftDistance;
+		matchingArea [6].X = boundBox.X + boundBox.Width + shiftDistance;
+		matchingArea [6].Y = matchingArea [5].Y;
+		matchingArea [7].X = matchingArea [6].X;
+		matchingArea [7].Y = matchingArea [4].Y;
+
+		OpenCvSharp.Rect matchingAreaBounds = Cv2.BoundingRect (matchingArea);
+
+		Point translate = new Point (matchingAreaBounds.X, matchingAreaBounds.Y) - matchingArea [0];
+
+		matchingBoxRect = new OpenCvSharp.Rect(
+									uperPlantCenterCorner.X + translate.X, 
+									uperPlantCenterCorner.Y + translate.Y,
+									matchingAreaBounds.Width,
+									matchingAreaBounds.Height);
+
+		// Clamping matching rect to the border of max matching rect.
+
+		if (matchingBoxRect.X < maxMatchingRect.X) {
+			int diff = maxMatchingRect.X - matchingBoxRect.X;
+			matchingBoxRect.Width -= diff;
+			matchingBoxRect.X = maxMatchingRect.X;
+		}
+
+		if (matchingBoxRect.Y < maxMatchingRect.Y) {
+			int diff = maxMatchingRect.Y - matchingBoxRect.Y;
+			matchingBoxRect.Height -= diff;
+			matchingBoxRect.Y = maxMatchingRect.Y;
+		}
+
+		if (matchingBoxRect.X + matchingBoxRect.Width > maxMatchingRect.X + maxMatchingRect.Width) {
+			int diff = matchingBoxRect.X + matchingBoxRect.Width - (maxMatchingRect.X + maxMatchingRect.Width);
+			matchingBoxRect.Width -= diff;
+		}
+
+		if (matchingBoxRect.Y + matchingBoxRect.Height > maxMatchingRect.Y + maxMatchingRect.Height) {
+			int diff = matchingBoxRect.Y + matchingBoxRect.Height - (maxMatchingRect.X + maxMatchingRect.Width);
+			matchingBoxRect.Height -= diff;
+		}
 	}
 	
 	public OpenCvSharp.Rect GetMatchingRect() {
-		return new OpenCvSharp.Rect ();
+		return matchingBoxRect;
 	}
 
 	public Mat GetTemplet() {
