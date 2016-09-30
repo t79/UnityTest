@@ -94,7 +94,8 @@ public class PlantSegmentasion : MonoBehaviour {
 					plantSegmentasionImage.Type(), 
 					numRotationSteps, 
 					plantSegmentasionCenter,
-					(int)((plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * plantCenterSize),
+					(int)((plantBounds.Width > plantBounds.Height ? 
+									plantBounds.Width : plantBounds.Height) * plantCenterSize),
 					maxSteamLength,
 					new OpenCvSharp.Rect(0, 0, plantSegmentasionImage.Width, plantSegmentasionImage.Height));
 
@@ -204,7 +205,12 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	private void ReduceSegmentasionResolution() {
 		float scale = 1.0f / reductionFactor;
-		Cv2.Resize (plantSegmentasionImage, plantSegmentasionImage, new Size (0, 0), scale, scale, InterpolationFlags.Linear);
+		Cv2.Resize (plantSegmentasionImage, 
+					plantSegmentasionImage, 
+					new Size (0, 0), 
+					scale, 
+					scale, 
+					InterpolationFlags.Linear);
 
 		plantSegmentasionCenter.X = (int)(plantSegmentasionCenter.X * scale);
 		plantSegmentasionCenter.Y = (int)(plantSegmentasionCenter.Y * scale);
@@ -260,7 +266,7 @@ public class PlantSegmentasion : MonoBehaviour {
 		Cv2.Sobel (plantSegmentasionImage, sobelY, MatType.CV_16S, 0, 1, 3);
 		Cv2.ConvertScaleAbs (sobelY, sobelY);
 
-		plantEdges = new Mat (); //Mat.Zeros(plantSegmentasionImage.Size(), plantSegmentasionImage.Type());
+		plantEdges = new Mat ();
 		Cv2.AddWeighted (sobelX, 0.5, sobelY, 0.5, 0, plantEdges);
 	}
 
@@ -269,7 +275,8 @@ public class PlantSegmentasion : MonoBehaviour {
 	}
 
 	private int CalculateMaxTempletSize() {
-		return (int)((plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * maxTempletPlantRatio);
+		return (int)((plantBounds.Width > plantBounds.Height ? 
+							plantBounds.Width : plantBounds.Height) * maxTempletPlantRatio);
 	}
 
 	private void showImages() {
@@ -327,7 +334,8 @@ class TempletGenerater {
 
 		this.templetCenter = maxTempletSize / 2; 
 		this.shiftDistance = plantCenterWidth / 2;
-		this.uperPlantCenterCorner = new Point (plantCenter.X - shiftDistance, plantCenter.Y - shiftDistance);
+		this.uperPlantCenterCorner = new Point (plantCenter.X - shiftDistance, 
+											plantCenter.Y - shiftDistance);
 		this.maxSteamLengthRatio = maxSteamLengthRatio;
 		this.maxMatchingRect = maxMatchingRect;
 		rotatPoint = new RotatPoint (numRotationSteps);
@@ -364,7 +372,11 @@ class TempletGenerater {
 		Cv2.Canny (shapeImage, shapeEdges, 100, 200, 3, false);
 
 		HierarchyIndex[] contoure_hierarcyInd;
-		Cv2.FindContours (shapeEdges, out contours, out contoure_hierarcyInd, RetrievalModes.External, ContourApproximationModes.ApproxTC89L1);
+
+		Cv2.FindContours (shapeEdges, out contours, 
+							out contoure_hierarcyInd, 
+							RetrievalModes.External, 
+							ContourApproximationModes.ApproxTC89L1);
 
 		if (contours.Length > 1) {
 			Debug.Log ("Dont know witch contour to use.");
@@ -382,7 +394,8 @@ class TempletGenerater {
 		contourScaled = new Point2f[contours [0].Length];
 
 		for (int i = 0; i < contours [0].Length; ++i) {
-			contourNormalized [i] = new Point2f ((contours [0] [i].X - center.X) / diameter, (contours [0] [i].Y - center.Y) / diameter);
+			contourNormalized [i] = new Point2f ((contours [0] [i].X - center.X) / diameter, 
+												(contours [0] [i].Y - center.Y) / diameter);
 			contourScaled [i] = new Point2f ();
 		}
 
@@ -396,7 +409,8 @@ class TempletGenerater {
 		steam [1].Y += diameter * maxSteamLengthRatio;
 
 		for (int i = 0; i < steam.Length; ++i) {
-			steamNormalized [i] = new Point2f ((steam [i].X - center.X) / diameter, (steam [i].Y - center.Y) / diameter);
+			steamNormalized [i] = new Point2f ((steam [i].X - center.X) / diameter, 
+												(steam [i].Y - center.Y) / diameter);
 			steamScaled [i] = new Point2f ();
 		}
 
@@ -417,13 +431,21 @@ class TempletGenerater {
 
 	public bool SetRotatsionStep(int rotStep) {
 		for (int i = 0; i < contours [0].Length; ++i) {
-			contours [0] [i].X = (int)rotatPoint.rotatX (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
-			contours [0] [i].Y = (int)rotatPoint.rotatY (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
+			contours [0] [i].X = (int)rotatPoint.rotatX (contourScaled [i].X, 
+											contourScaled [i].Y, 
+											rotStep) 	+ templetCenter;
+			contours [0] [i].Y = (int)rotatPoint.rotatY (contourScaled [i].X, 
+											contourScaled [i].Y, 
+											rotStep) 	+ templetCenter;
 		}
 
 		for (int i = 0; i < steam.Length; ++i) {
-			steam [i].X = rotatPoint.rotatX (steamScaled [i].X, steamScaled [i].Y, rotStep) + templetCenter;
-			steam [i].Y = rotatPoint.rotatY (steamScaled [i].X, steamScaled [i].Y, rotStep) + templetCenter;
+			steam [i].X = rotatPoint.rotatX (steamScaled [i].X, 
+										steamScaled [i].Y, 
+										rotStep) 	+ templetCenter;
+			steam [i].Y = rotatPoint.rotatY (steamScaled [i].X, 
+										steamScaled [i].Y, 
+										rotStep) 	+ templetCenter;
 		}
 
 		OpenCvSharp.Rect boundBox = Cv2.BoundingRect (contours [0]);
