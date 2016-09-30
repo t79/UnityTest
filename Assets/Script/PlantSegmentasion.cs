@@ -31,6 +31,8 @@ public class PlantSegmentasion : MonoBehaviour {
 	private Mat plantMask;
 	private Mat plantEdges;
 
+	private Mat accumulatedLeafCandidates;
+
 	private OpenCvSharp.Rect plantBounds;
 
 	public void RunSegmentasion() {
@@ -56,8 +58,6 @@ public class PlantSegmentasion : MonoBehaviour {
 			GenerateNewTempletSizes (10);
 		}
 
-		showImages ();
-
 		int maxTempletSize = CalculateMaxTempletSize ();
 
 		TempletGenerater templetGenerator = 
@@ -70,6 +70,7 @@ public class PlantSegmentasion : MonoBehaviour {
 					new OpenCvSharp.Rect(0, 0, plantSegmentasionImage.Width, plantSegmentasionImage.Height));
 
 		Mat matchinResultMat = Mat.Zeros(plantSegmentasionImage.Size(), plantSegmentasionImage.Type());
+		accumulatedLeafCandidates = Mat.Zeros (plantSegmentasionImage.Size (), plantSegmentasionImage.Type ());
 
 		double minValue, maxValue;
 		Point minLoc, maxLoc;
@@ -92,12 +93,14 @@ public class PlantSegmentasion : MonoBehaviour {
 
 				for (int rotStep = 0; rotStep < numRotationSteps; ++rotStep) {
 
-					if (!templetGenerator.SetRotasionStep (rotStep)) {
+					if (!templetGenerator.SetRotatsionStep (rotStep)) {
 						Debug.Log ("Matching area is to small.");
 						continue;
 					}
 
-					Mat matchingAreaMat = new Mat (plantEdges, templetGenerator.GetMatchingRect ());
+					OpenCvSharp.Rect matchingRect = templetGenerator.GetMatchingRect ();
+
+					Mat matchingAreaMat = new Mat (plantEdges, matchingRect);
 					Mat templet = templetGenerator.GetTemplet ();
 
 					OpenCvSharp.Rect matchingResultRect = new OpenCvSharp.Rect( 0, 0,
@@ -113,10 +116,21 @@ public class PlantSegmentasion : MonoBehaviour {
 
 					if (maxValue > matchingTreshold) {
 
+						Debug.Log ("drawDrawDraw...");
+
+						OpenCvSharp.Rect drawingRect = new OpenCvSharp.Rect (maxLoc.X + matchingRect.X, 
+																maxLoc.Y + matchingRect.Y, 
+																templet.Width,
+																templet.Height);
+						
+						Mat accLCDrawingArea = new Mat (accumulatedLeafCandidates, drawingRect);
+						Cv2.Add (accLCDrawingArea, templet, accLCDrawingArea);
 					}
 				}
 			}
 		}
+			
+		showImages ();
 	}
 
 	private bool LoadImages() {
@@ -235,11 +249,13 @@ public class PlantSegmentasion : MonoBehaviour {
 		Cv2.NamedWindow ("Mask image", WindowMode.KeepRatio);
 		Cv2.NamedWindow ("Segmentasion image", WindowMode.KeepRatio);
 		Cv2.NamedWindow ("Edge image", WindowMode.KeepRatio);
+		Cv2.NamedWindow ("Leaf Candidates", WindowMode.KeepRatio);
 
 		Cv2.ImShow ("Color image", plantImageBGR);
 		Cv2.ImShow ("Mask image", plantMask);
 		Cv2.ImShow ("Segmentasion image", plantSegmentasionImage);
 		Cv2.ImShow ("Edge image", plantEdges);
+		Cv2.ImShow ("Leaf Candidates", accumulatedLeafCandidates);
 	}
 }
 
@@ -366,7 +382,7 @@ class TempletGenerater {
 		}
 	}
 
-	public bool SetRotasionStep(int rotStep) {
+	public bool SetRotatsionStep(int rotStep) {
 		for (int i = 0; i < contours [0].Length; ++i) {
 			contours [0] [i].X = (int)rotatPoint.rotatX (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
 			contours [0] [i].Y = (int)rotatPoint.rotatY (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
