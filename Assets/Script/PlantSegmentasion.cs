@@ -5,24 +5,53 @@ using OpenCvSharp;
 
 public class PlantSegmentasion : MonoBehaviour {
 
-	public string plantImageFilePath = "";
-	public string plantMaskFilePath = "";
+	// --- Public Properties 
+
+	[Header("Plant file paths:")]
+	[Tooltip("File path to the plant image")]
+	public string plantImagePath = "";
+	[Tooltip("File path to the plant mask image")]
+	public string plantMaskPath = "";
+
+	[Header("Plant properties:")]
+	[Tooltip("The center point of the plant in the plant image coordinate.")]
 	public Vector2 plantCenter;
-	public float plantCenterSizeRatio = 0.2f;
-	public float maxSteamLengthRatio = 1.0f;
-
-	public int reductionFactor = 4;
+	[Tooltip("The width of the plant center, where 1 is the diameter of the plant.")]
+	[Range(0.01f, 1.0f)]
+	public float plantCenterSize = 0.2f;
+	[Tooltip("The width of the padding around the plant, where 1 is the diameter of the plant.")]
+	[Range(0.01f, 2.0f)]
 	public float plantPadding = 0.2f;
-	public int numRotationSteps = 24;
+	[Tooltip("Reduces the resolution of the segmentasion.")]
+	[Range(1, 10)]
+	public int reductionFactor = 4;
 
+
+	[Header("Matching properites:")]
+	[Tooltip("How many steps when rottating the templet 360 degree.")]
+	public int numRotationSteps = 24;
+	[Tooltip("How many difrent sizes. Only used when regenereating the size list.")]
+	public int numSizes = 10;
+	[Tooltip("The maximum Templet diameter, where 1 is the diameter of the plant.")]
+	[Range(0.1f, 1.0f)]
+	public float maxTempletPlantRatio = 0.8f;
+	[Tooltip("Resets the size list, generate linearly between 0.1 and maximum size.")]
+	public bool generateSizes = false;
+	[Tooltip("List of all templet sizes.")]
+	[ContextMenuItem("Regenerate sizes.", "GenerateSizeValues")]
+	public int[] templetSizes;
+	[Tooltip("List of all the shapes file paths.")]
 	public string[] templetShapePath;
 
-	public float maxTempletPlantRatio = 0.8f;
-	public int[] templetSizes;
-
+	[Header("Templet properties:")]
+	[Tooltip("The maximum length on leaf steam, where 1 is the diamether of the leaf shape.")]
+	[Range(0.1f, 2.0f)]
+	public float maxSteamLength = 1.0f;
+	[Tooltip("The minimum value to become a leaf candidate.")]
 	public float matchingTreshold;
 
-	public bool generateNewTempletSizes = false;
+
+	// --- Private Properties
 
 	// image matrixes
 	private Mat plantImageBGR;
@@ -54,7 +83,7 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		MakeEdgeMat ();
 
-		if (generateNewTempletSizes) {
+		if (generateSizes) {
 			GenerateNewTempletSizes (10);
 		}
 
@@ -65,8 +94,8 @@ public class PlantSegmentasion : MonoBehaviour {
 					plantSegmentasionImage.Type(), 
 					numRotationSteps, 
 					plantSegmentasionCenter,
-					(int)((plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * plantCenterSizeRatio),
-					maxSteamLengthRatio,
+					(int)((plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height) * plantCenterSize),
+					maxSteamLength,
 					new OpenCvSharp.Rect(0, 0, plantSegmentasionImage.Width, plantSegmentasionImage.Height));
 
 		Mat matchinResultMat = Mat.Zeros(plantSegmentasionImage.Size(), plantSegmentasionImage.Type());
@@ -136,21 +165,21 @@ public class PlantSegmentasion : MonoBehaviour {
 	private bool LoadImages() {
 
 		// Checking that the files exist.
-		if (!File.Exists (plantImageFilePath) || !File.Exists(plantMaskFilePath)) {
+		if (!File.Exists (plantImagePath) || !File.Exists(plantMaskPath)) {
 			Debug.Log ("Image or mask File do not exist!");
 			return false;
 		}
 
-		plantImageBGR = Cv2.ImRead (plantImageFilePath, ImreadModes.Color);
-		plantMask = Cv2.ImRead (plantMaskFilePath, ImreadModes.GrayScale);
+		plantImageBGR = Cv2.ImRead (plantImagePath, ImreadModes.Color);
+		plantMask = Cv2.ImRead (plantMaskPath, ImreadModes.GrayScale);
 
 		if (plantImageBGR.Empty()) {
-			Debug.Log ("No readable plant image file: " + plantImageFilePath);
+			Debug.Log ("No readable plant image file: " + plantImagePath);
 			return false;
 		}
 
 		if (plantMask.Empty()) {
-			Debug.Log ("No readable plant mask file: " + plantMaskFilePath);
+			Debug.Log ("No readable plant mask file: " + plantMaskPath);
 			return false;
 		}
 
@@ -256,6 +285,10 @@ public class PlantSegmentasion : MonoBehaviour {
 		Cv2.ImShow ("Segmentasion image", plantSegmentasionImage);
 		Cv2.ImShow ("Edge image", plantEdges);
 		Cv2.ImShow ("Leaf Candidates", accumulatedLeafCandidates);
+	}
+
+	public void GenerateSizeValues() {
+		Debug.Log ("Generate sizez, not implementet.");
 	}
 }
 

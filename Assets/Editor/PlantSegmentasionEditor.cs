@@ -5,14 +5,20 @@ using System.Collections;
 [CustomEditor (typeof (PlantSegmentasion))]
 public class PlantSegmentasionEditor : Editor {
 
-	public override void OnInspectorGUI() {
+	private PlantSegmentasion ps;
 
-		EditorUtility.SetDirty (target);
-		PlantSegmentasion ps;
-		ps = target as PlantSegmentasion;
+	private void OnEnable() {
+		ps = (PlantSegmentasion)target;
+	}
+
+	public override void OnInspectorGUI() {
 
 		if (ps == null) {
 			return;
+		}
+
+		if (GUI.changed) {
+			EditorUtility.SetDirty (ps);
 		}
 
 		base.DrawDefaultInspector ();
