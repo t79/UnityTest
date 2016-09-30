@@ -69,7 +69,7 @@ public class PlantSegmentasion : MonoBehaviour {
 					maxSteamLengthRatio,
 					new OpenCvSharp.Rect(0, 0, plantSegmentasionImage.Width, plantSegmentasionImage.Height));
 
-		Mat matchinResultMat = Mat.Zeros(plantEdges.Size(), plantEdges.Type());
+		Mat matchinResultMat = Mat.Zeros(plantSegmentasionImage.Size(), plantSegmentasionImage.Type());
 
 		double minValue, maxValue;
 		Point minLoc, maxLoc;
@@ -84,6 +84,7 @@ public class PlantSegmentasion : MonoBehaviour {
 			foreach (int templetSize in templetSizes) {
 
 				if (templetSize > maxTempletSize) {
+					Debug.Log (templetSize + " > " + maxTempletSize);
 					continue;
 				}
 
@@ -91,16 +92,18 @@ public class PlantSegmentasion : MonoBehaviour {
 
 				for (int rotStep = 0; rotStep < numRotationSteps; ++rotStep) {
 
-					templetGenerator.SetRotasionStep (rotStep);
-
-					if (templetGenerator.toSmallMatchingArea ()) {
+					if (!templetGenerator.SetRotasionStep (rotStep)) {
+						Debug.Log ("Matching area is to small.");
 						continue;
 					}
 
 					Mat matchingAreaMat = new Mat (plantEdges, templetGenerator.GetMatchingRect ());
 					Mat templet = templetGenerator.GetTemplet ();
 
-					OpenCvSharp.Rect matchingResultRect = new OpenCvSharp.Rect (new Point (0, 0), templetGenerator.GetMatchingResultSize ());
+					OpenCvSharp.Rect matchingResultRect = new OpenCvSharp.Rect( 0, 0,
+																matchingAreaMat.Width - templet.Width + 1,
+																matchingAreaMat.Height - templet.Height + 1);
+					
 					Mat matchingResultSubMat = new Mat (matchinResultMat, matchingResultRect);
 					matchingResultSubMat.SetTo (new Scalar(0), null);
 
@@ -363,7 +366,7 @@ class TempletGenerater {
 		}
 	}
 
-	public void SetRotasionStep(int rotStep) {
+	public bool SetRotasionStep(int rotStep) {
 		for (int i = 0; i < contours [0].Length; ++i) {
 			contours [0] [i].X = (int)rotatPoint.rotatX (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
 			contours [0] [i].Y = (int)rotatPoint.rotatY (contourScaled [i].X, contourScaled [i].Y, rotStep) + templetCenter;
@@ -433,6 +436,12 @@ class TempletGenerater {
 			int diff = matchingBoxRect.Y + matchingBoxRect.Height - (maxMatchingRect.X + maxMatchingRect.Width);
 			matchingBoxRect.Height -= diff;
 		}
+
+		// Checke if the matching area is not to small
+		if (matchingBoxRect.Width <= templet.Width || matchingBoxRect.Height <= templet.Height) {
+			return false;
+		}
+		return true;
 	}
 	
 	public OpenCvSharp.Rect GetMatchingRect() {
@@ -442,15 +451,6 @@ class TempletGenerater {
 	public Mat GetTemplet() {
 		return templet;
 	}
-
-	public bool toSmallMatchingArea () {
-		return false;
-	}
-
-	public Size GetMatchingResultSize () {
-		return new Size (0, 0);
-	}
-
 }
 
 public class RotatPoint {
