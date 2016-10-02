@@ -7,11 +7,13 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	// --- Public Properties 
 
+
 	[Header("Plant file paths:")]
 	[Tooltip("File path to the plant image")]
 	public string plantImagePath = "";
 	[Tooltip("File path to the plant mask image")]
 	public string plantMaskPath = "";
+
 
 	[Header("Plant properties:")]
 	[Tooltip("The center point of the plant in the plant image coordinate.")]
@@ -42,6 +44,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	public int[] templetSizes;
 	[Tooltip("List of all the shapes file paths.")]
 	public string[] templetShapePath;
+
 
 	[Header("Templet properties:")]
 	[Tooltip("The maximum length on leaf steam, where 1 is the diamether of the leaf shape.")]
@@ -313,6 +316,12 @@ public class PlantSegmentasion : MonoBehaviour {
 
 class TempletGenerator {
 
+	private enum State : byte {
+		NotSet, ShapeSet, SízeSet, TempletSet
+	};
+
+	private State generatorState;
+
 	private Point[][] contours;
 	private Point2f[] contourNormalized;
 	private Point2f[] contourScaled;
@@ -350,6 +359,8 @@ class TempletGenerator {
 				OpenCvSharp.Rect maxMatchingRect,
 				Mat plantMask,
 				float outsideMaskRatio) {
+
+		generatorState = State.NotSet;
 
 		this.templetCenter = maxTempletSize / 2; 
 		this.shiftDistance = plantCenterWidth / 2;
@@ -406,6 +417,8 @@ class TempletGenerator {
 			return false;
 		}
 
+		generatorState = State.NotSet;
+
 		Point2f center;
 		float radius;
 
@@ -437,10 +450,17 @@ class TempletGenerator {
 			steamScaled [i] = new Point2f ();
 		}
 
+		generatorState = State.ShapeSet;
+
 		return true;
 	}
 
 	public void SetSize(int size) {
+		if (generatorState < State.ShapeSet) {
+			Debug.Log ("Shape is not set.");
+			return;
+		}
+
 		for (int i = 0; i < contours [0].Length; ++i) {
 			contourScaled [i].X = contourNormalized [i].X * size;
 			contourScaled [i].Y = contourNormalized [i].Y * size;
@@ -450,9 +470,18 @@ class TempletGenerator {
 			steamScaled [i].X = steamNormalized [i].X * size;
 			steamScaled [i].Y = steamNormalized [i].Y * size;
 		}
+
+		generatorState = State.SízeSet;
 	}
 
 	public bool SetRotatsionStep(int rotStep) {
+		if (generatorState < State.SízeSet) {
+			Debug.Log ("Size is not set.");
+			return false;
+		}
+
+		generatorState = State.SízeSet;
+
 		for (int i = 0; i < contours [0].Length; ++i) {
 			contours [0] [i].X = (int)rotatPoint.rotatX (contourScaled [i].X, 
 											contourScaled [i].Y, 
@@ -539,18 +568,34 @@ class TempletGenerator {
 		if (matchingBoxRect.Width <= templetContour.Width || matchingBoxRect.Height <= templetContour.Height) {
 			return false;
 		}
+
+		generatorState = State.TempletSet;
+
 		return true;
 	}
 	
 	public OpenCvSharp.Rect GetMatchingRect() {
+		if (generatorState < State.TempletSet) {
+			Debug.Log ("Templet not set.");
+			return new OpenCvSharp.Rect ();
+		}
 		return matchingBoxRect;
 	}
 
 	public Mat GetTemplet() {
+		if (generatorState < State.TempletSet) {
+			Debug.Log ("Templet not set.");
+			return new Mat();
+		}
 		return templetContour;
 	}
 
 	public bool checkAgainstMask(Point location) {
+		if (generatorState < State.TempletSet) {
+			Debug.Log ("Templet not set.");
+			return false;
+		}
+
 		double templetValue = Cv2.Sum(templetFill).Val0;
 
 		OpenCvSharp.Rect maskRect = new OpenCvSharp.Rect (matchingBoxRect.X + location.X, 
