@@ -50,8 +50,12 @@ public class PlantSegmentasion : MonoBehaviour {
 	[Tooltip("The maximum length on leaf steam, where 1 is the diamether of the leaf shape.")]
 	[Range(0.1f, 2.0f)]
 	public float maxSteamLength = 1.0f;
-	[Tooltip("The minimum value to become a leaf candidate.")]
-	public float matchingTreshold;
+	[Tooltip("The minimum matching value to become a leaf candidate.")]
+	[Range(0.0f, 1.0f)]
+	public float minMatchTreshold = 0.2f;
+	[Tooltip("The maximum matching value to become a leaf candidate.")]
+	[Range(0.0f, 1.0f)]
+	public float maxMatchTreshold = 1.0f;
 	[Tooltip("How big part of the leaf candidate can go outside of the mask.")]
 	[Range(0.0f, 0.5f)]
 	public float outsideMaskRatio = 0.05f;
@@ -153,7 +157,7 @@ public class PlantSegmentasion : MonoBehaviour {
 
 					Cv2.MinMaxLoc (matchingResultSubMat, out minValue, out maxValue, out minLoc, out maxLoc);
 
-					if (maxValue > matchingTreshold) {
+					if (maxValue >= minMatchTreshold && maxValue <= maxMatchTreshold) {
 
 						if (templetGenerator.checkAgainstMask (maxLoc)) {
 
@@ -609,7 +613,7 @@ class TempletGenerator {
 
 		double outsideMaskValue = Cv2.Sum (bitwiseResult).Val0;
 		double templetOutsideMaskRatio = 0.0;
-		if (outsideMaskValue > 0.0) {
+		if (templetValue > 0.0) {
 			templetOutsideMaskRatio = outsideMaskValue / templetValue;
 		}
 
