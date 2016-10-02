@@ -49,6 +49,9 @@ public class PlantSegmentasion : MonoBehaviour {
 	public float maxSteamLength = 1.0f;
 	[Tooltip("The minimum value to become a leaf candidate.")]
 	public float matchingTreshold;
+	[Tooltip("How big part of the leaf candidate can go outside of the mask.")]
+	[Range(0.0f, 0.5f)]
+	public float outsideMaskRatio = 0.05f;
 
 
 	// --- Private Properties
@@ -58,6 +61,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	private Mat plantSegmentasionImage;
 	private Point plantSegmentasionCenter;
 	private Mat plantMask;
+	private Mat plantMaskCropt;
 	private Mat plantEdges;
 
 	private Mat accumulatedLeafCandidates;
@@ -89,15 +93,17 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		int maxTempletSize = CalculateMaxTempletSize ();
 
-		TempletGenerater templetGenerator = 
-			new TempletGenerater(maxTempletSize, 
+		TempletGenerator templetGenerator = 
+			new TempletGenerator(maxTempletSize, 
 					plantSegmentasionImage.Type(), 
 					numRotationSteps, 
 					plantSegmentasionCenter,
 					(int)((plantBounds.Width > plantBounds.Height ? 
 									plantBounds.Width : plantBounds.Height) * plantCenterSize),
 					maxSteamLength,
-					new OpenCvSharp.Rect(0, 0, plantSegmentasionImage.Width, plantSegmentasionImage.Height));
+					new OpenCvSharp.Rect(0, 0, plantSegmentasionImage.Width, plantSegmentasionImage.Height),
+					plantMaskCropt,
+					outsideMaskRatio);
 
 		Mat matchinResultMat = Mat.Zeros(plantSegmentasionImage.Size(), plantSegmentasionImage.Type());
 		accumulatedLeafCandidates = Mat.Zeros (plantSegmentasionImage.Size (), plantSegmentasionImage.Type ());
@@ -146,15 +152,16 @@ public class PlantSegmentasion : MonoBehaviour {
 
 					if (maxValue > matchingTreshold) {
 
-						Debug.Log ("drawDrawDraw...");
+						if (templetGenerator.checkAgainstMask (maxLoc)) {
 
-						OpenCvSharp.Rect drawingRect = new OpenCvSharp.Rect (maxLoc.X + matchingRect.X, 
+							OpenCvSharp.Rect drawingRect = new OpenCvSharp.Rect (maxLoc.X + matchingRect.X, 
 																maxLoc.Y + matchingRect.Y, 
 																templet.Width,
 																templet.Height);
 						
-						Mat accLCDrawingArea = new Mat (accumulatedLeafCandidates, drawingRect);
-						Cv2.Add (accLCDrawingArea, templet, accLCDrawingArea);
+							Mat accLCDrawingArea = new Mat (accumulatedLeafCandidates, drawingRect);
+							Cv2.Add (accLCDrawingArea, templet, accLCDrawingArea);
+						}
 					}
 				}
 			}
@@ -251,6 +258,7 @@ public class PlantSegmentasion : MonoBehaviour {
 		OpenCvSharp.Rect roi = new OpenCvSharp.Rect (roiX, roiY, roiWidth, roiHeight);
 
 		plantSegmentasionImage = new Mat (plantSegmentasionImage, roi);
+		plantMaskCropt = new Mat (plantMask, roi);
 
 		plantSegmentasionCenter.X -= roi.X;
 		plantSegmentasionCenter.Y -= roi.Y;
@@ -291,7 +299,11 @@ public class PlantSegmentasion : MonoBehaviour {
 		Cv2.ImShow ("Mask image", plantMask);
 		Cv2.ImShow ("Segmentasion image", plantSegmentasionImage);
 		Cv2.ImShow ("Edge image", plantEdges);
-		Cv2.ImShow ("Leaf Candidates", accumulatedLeafCandidates);
+
+		Mat leafCandidateOnPlant = new Mat ();
+		Cv2.Add (accumulatedLeafCandidates, plantSegmentasionImage, leafCandidateOnPlant);
+
+		Cv2.ImShow ("Leaf Candidates", leafCandidateOnPlant);
 	}
 
 	public void GenerateSizeValues() {
@@ -299,7 +311,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	}
 }
 
-class TempletGenerater {
+class TempletGenerator {
 
 	private Point[][] contours;
 	private Point2f[] contourNormalized;
@@ -316,21 +328,28 @@ class TempletGenerater {
 	private Point2f[] steamNormalized;
 	private Point2f[] steamScaled;
 
-	private Mat templet;
-	private Mat templetMat;
+	private Mat templetContour;
+	private Mat templetContureMat;
+	private Mat templetFill;
+	private Mat templetFillMat;
 
 	private Point[] matchingArea;
 	private OpenCvSharp.Rect matchingBoxRect;
 	private OpenCvSharp.Rect maxMatchingRect;
 
-	public TempletGenerater(
+	private Mat plantMaskInvert;
+	private float outsideMaskRatio;
+
+	public TempletGenerator(
 				int maxTempletSize, 
 				MatType matType,  
 				int numRotationSteps, 
 				Point plantCenter, 
 				int plantCenterWidth,
 				float maxSteamLengthRatio,
-				OpenCvSharp.Rect maxMatchingRect) {
+				OpenCvSharp.Rect maxMatchingRect,
+				Mat plantMask,
+				float outsideMaskRatio) {
 
 		this.templetCenter = maxTempletSize / 2; 
 		this.shiftDistance = plantCenterWidth / 2;
@@ -338,8 +357,12 @@ class TempletGenerater {
 											plantCenter.Y - shiftDistance);
 		this.maxSteamLengthRatio = maxSteamLengthRatio;
 		this.maxMatchingRect = maxMatchingRect;
+		this.plantMaskInvert = 255 - plantMask;
+		this.outsideMaskRatio = outsideMaskRatio;
+
 		rotatPoint = new RotatPoint (numRotationSteps);
-		templetMat = Mat.Zeros (maxTempletSize, maxTempletSize, matType);
+		templetContureMat = Mat.Zeros (maxTempletSize, maxTempletSize, matType);
+		templetFillMat = Mat.Zeros (maxTempletSize, maxTempletSize, matType);
 
 		matchingArea = new Point[8];
 		for (int i = 0; i < matchingArea.Length; ++i) {
@@ -450,10 +473,14 @@ class TempletGenerater {
 
 		OpenCvSharp.Rect boundBox = Cv2.BoundingRect (contours [0]);
 
-		templet = new Mat (templetMat, boundBox);
-		templet.SetTo (new Scalar (0), null);
+		templetContour = new Mat (templetContureMat, boundBox);
+		templetContour.SetTo (new Scalar (0), null);
+		Cv2.DrawContours (templetContureMat, contours, 0, new Scalar (255), 1, LineTypes.AntiAlias);
 
-		Cv2.DrawContours (templetMat, contours, 0, new Scalar (255), 1, LineTypes.AntiAlias);
+		templetFill = new Mat (templetFillMat, boundBox);
+		templetFill.SetTo (new Scalar (0), null);
+		// LineTypes.Filled gives error, set thickness to -1 for filling.
+		Cv2.DrawContours (templetFillMat, contours, 0, new Scalar (255), -1, LineTypes.Link8);
 
 
 		matchingArea [0].X = (int)steam [1].X - shiftDistance;
@@ -509,7 +536,7 @@ class TempletGenerater {
 		}
 
 		// Checke if the matching area is not to small
-		if (matchingBoxRect.Width <= templet.Width || matchingBoxRect.Height <= templet.Height) {
+		if (matchingBoxRect.Width <= templetContour.Width || matchingBoxRect.Height <= templetContour.Height) {
 			return false;
 		}
 		return true;
@@ -520,7 +547,31 @@ class TempletGenerater {
 	}
 
 	public Mat GetTemplet() {
-		return templet;
+		return templetContour;
+	}
+
+	public bool checkAgainstMask(Point location) {
+		double templetValue = Cv2.Sum(templetFill).Val0;
+
+		OpenCvSharp.Rect maskRect = new OpenCvSharp.Rect (matchingBoxRect.X + location.X, 
+											matchingBoxRect.Y + location.Y, 
+											templetFill.Width, 
+											templetFill.Height);
+
+		Mat mask = new Mat (plantMaskInvert, maskRect);
+		Mat bitwiseResult = new Mat ();
+		Cv2.BitwiseAnd (mask, templetFill, bitwiseResult);
+
+		double outsideMaskValue = Cv2.Sum (bitwiseResult).Val0;
+		double templetOutsideMaskRatio = 0.0;
+		if (outsideMaskValue > 0.0) {
+			templetOutsideMaskRatio = outsideMaskValue / templetValue;
+		}
+
+		if (templetOutsideMaskRatio > outsideMaskRatio) {
+			return false;
+		}
+		return true;
 	}
 }
 
