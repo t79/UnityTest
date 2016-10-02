@@ -40,7 +40,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	[Tooltip("Resets the size list, generate linearly between 0.1 and maximum size.")]
 	public bool generateSizes = false;
 	[Tooltip("List of all templet sizes.")]
-	[ContextMenuItem("Regenerate sizes.", "GenerateSizeValues")]
+	[ContextMenuItem("Regenerate all sizes.", "GenerateSizeValues")]
 	public float[] templetSizes;
 	[Tooltip("List of all the shapes file paths.")]
 	public string[] templetShapePath;
@@ -137,7 +137,7 @@ public class PlantSegmentasion : MonoBehaviour {
 				for (int rotStep = 0; rotStep < numRotationSteps; ++rotStep) {
 
 					if (!templetGenerator.SetRotatsionStep (rotStep)) {
-						Debug.Log ("Matching area is to small.");
+						//Debug.Log ("Could not make a workable templet.");
 						continue;
 					}
 
