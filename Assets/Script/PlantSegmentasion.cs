@@ -95,7 +95,7 @@ public class PlantSegmentasion : MonoBehaviour {
 		MakeEdgeMat ();
 
 		if (generateSizes) {
-			GenerateNewTempletSizes (10);
+			GenerateSizeValues ();
 		}
 
 		//int maxTempletSize = CalculateMaxTempletSize ();
@@ -314,7 +314,12 @@ public class PlantSegmentasion : MonoBehaviour {
 	}
 
 	public void GenerateSizeValues() {
-		Debug.Log ("Generate sizez, not implementet.");
+		float delta = (maxTempletPlantRatio - 0.05f) / (numSizes - 1);
+		templetSizes = new float[numSizes];
+
+		for (int i = 0; i < numSizes; ++i) {
+			templetSizes [i] = maxTempletPlantRatio - i * delta;
+		}
 	}
 }
 
