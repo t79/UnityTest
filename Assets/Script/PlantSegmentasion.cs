@@ -41,7 +41,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	public bool generateSizes = false;
 	[Tooltip("List of all templet sizes.")]
 	[ContextMenuItem("Regenerate sizes.", "GenerateSizeValues")]
-	public int[] templetSizes;
+	public float[] templetSizes;
 	[Tooltip("List of all the shapes file paths.")]
 	public string[] templetShapePath;
 
@@ -98,10 +98,11 @@ public class PlantSegmentasion : MonoBehaviour {
 			GenerateNewTempletSizes (10);
 		}
 
-		int maxTempletSize = CalculateMaxTempletSize ();
+		//int maxTempletSize = CalculateMaxTempletSize ();
+		int plantSize = plantBounds.Width > plantBounds.Height ? plantBounds.Width : plantBounds.Height;
 
 		TempletGenerator templetGenerator = 
-			new TempletGenerator(maxTempletSize, 
+			new TempletGenerator((int)(plantSize * maxTempletPlantRatio), 
 					plantSegmentasionImage.Type(), 
 					numRotationSteps, 
 					plantSegmentasionCenter,
@@ -125,14 +126,13 @@ public class PlantSegmentasion : MonoBehaviour {
 				continue;
 			}
 
-			foreach (int templetSize in templetSizes) {
+			foreach (float templetSize in templetSizes) {
 
-				if (templetSize > maxTempletSize) {
-					Debug.Log (templetSize + " > " + maxTempletSize);
+				if (templetSize > maxTempletPlantRatio) {
 					continue;
 				}
 
-				templetGenerator.SetSize (templetSize);
+				templetGenerator.SetSize ((int)(templetSize * plantSize));
 
 				for (int rotStep = 0; rotStep < numRotationSteps; ++rotStep) {
 
