@@ -37,7 +37,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	[Tooltip("The maximum Templet diameter, where 1 is the diameter of the plant.")]
 	[Range(0.1f, 1.0f)]
 	public float maxTempletPlantRatio = 0.8f;
-	[Tooltip("Resets the size list, generate linearly between 0.1 and maximum size.")]
+	[Tooltip("Resets the size list, generate linearly between 0.05 and maximum size.")]
 	public bool generateSizes = false;
 	[Tooltip("List of all templet sizes.")]
 	[ContextMenuItem("Regenerate all sizes.", "GenerateSizeValues")]
