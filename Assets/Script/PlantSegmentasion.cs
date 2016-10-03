@@ -106,8 +106,7 @@ public class PlantSegmentasion : MonoBehaviour {
 					plantSegmentasionImage.Type(), 
 					numRotationSteps, 
 					plantSegmentasionCenter,
-					(int)((plantBounds.Width > plantBounds.Height ? 
-									plantBounds.Width : plantBounds.Height) * plantCenterSize),
+					(int)(plantSize * plantCenterSize),
 					maxSteamLength,
 					new OpenCvSharp.Rect(0, 0, plantSegmentasionImage.Width, plantSegmentasionImage.Height),
 					plantMaskCropt,
