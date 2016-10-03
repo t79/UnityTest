@@ -253,13 +253,16 @@ public class PlantSegmentasion : MonoBehaviour {
 		if (roiY < 0) {
 			roiY = 0;
 		}
+
 		int roiWidth = plantBounds.Width + (int)(plantBounds.Width * plantPadding * 2);
-		if (roiWidth + roiX > plantSegmentasionImage.Width) {
-			roiWidth = plantSegmentasionImage.Width - roiX;
+		int diffWidth = (roiWidth + roiX) - plantSegmentasionImage.Width;
+		if (diffWidth > 0) {
+			roiWidth -= diffWidth;
 		}
 		int roiHeight = plantBounds.Height + (int)(plantBounds.Height * plantPadding * 2);
-		if (roiHeight + roiY > plantSegmentasionImage.Height) {
-			roiHeight = plantSegmentasionImage.Height - roiY;
+		int diffHeight = (roiHeight + roiY) - plantSegmentasionImage.Height;
+		if (diffWidth > 0) {
+			roiHeight -= diffWidth;
 		}
 
 		OpenCvSharp.Rect roi = new OpenCvSharp.Rect (roiX, roiY, roiWidth, roiHeight);
@@ -416,6 +419,8 @@ class TempletGenerator {
 
 		HierarchyIndex[] contoure_hierarcyInd;
 
+		generatorState = State.NotSet;
+
 		Cv2.FindContours (shapeEdges, out contours, 
 							out contoure_hierarcyInd, 
 							RetrievalModes.External, 
@@ -425,8 +430,6 @@ class TempletGenerator {
 			Debug.Log ("Dont know witch contour to use.");
 			return false;
 		}
-
-		generatorState = State.NotSet;
 
 		Point2f center;
 		float radius;
