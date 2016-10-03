@@ -37,7 +37,7 @@ public class PlantSegmentasion : MonoBehaviour {
 	[Tooltip("The maximum Templet diameter, where 1 is the diameter of the plant.")]
 	[Range(0.1f, 1.0f)]
 	public float maxTempletPlantRatio = 0.8f;
-	[Tooltip("Resets the size list, generate linearly between 0.1 and maximum size.")]
+	[Tooltip("Resets the size list, generate linearly between 0.05 and maximum size.")]
 	public bool generateSizes = false;
 	[Tooltip("List of all templet sizes.")]
 	[ContextMenuItem("Regenerate all sizes.", "GenerateSizeValues")]
@@ -106,8 +106,7 @@ public class PlantSegmentasion : MonoBehaviour {
 					plantSegmentasionImage.Type(), 
 					numRotationSteps, 
 					plantSegmentasionCenter,
-					(int)((plantBounds.Width > plantBounds.Height ? 
-									plantBounds.Width : plantBounds.Height) * plantCenterSize),
+					(int)(plantSize * plantCenterSize),
 					maxSteamLength,
 					new OpenCvSharp.Rect(0, 0, plantSegmentasionImage.Width, plantSegmentasionImage.Height),
 					plantMaskCropt,
@@ -253,13 +252,16 @@ public class PlantSegmentasion : MonoBehaviour {
 		if (roiY < 0) {
 			roiY = 0;
 		}
+
 		int roiWidth = plantBounds.Width + (int)(plantBounds.Width * plantPadding * 2);
-		if (roiWidth + roiX > plantSegmentasionImage.Width) {
-			roiWidth = plantSegmentasionImage.Width - roiX;
+		int diffWidth = (roiWidth + roiX) - plantSegmentasionImage.Width;
+		if (diffWidth > 0) {
+			roiWidth -= diffWidth;
 		}
 		int roiHeight = plantBounds.Height + (int)(plantBounds.Height * plantPadding * 2);
-		if (roiHeight + roiY > plantSegmentasionImage.Height) {
-			roiHeight = plantSegmentasionImage.Height - roiY;
+		int diffHeight = (roiHeight + roiY) - plantSegmentasionImage.Height;
+		if (diffHeight > 0) {
+			roiHeight -= diffHeight;
 		}
 
 		OpenCvSharp.Rect roi = new OpenCvSharp.Rect (roiX, roiY, roiWidth, roiHeight);
@@ -416,6 +418,8 @@ class TempletGenerator {
 
 		HierarchyIndex[] contoure_hierarcyInd;
 
+		generatorState = State.NotSet;
+
 		Cv2.FindContours (shapeEdges, out contours, 
 							out contoure_hierarcyInd, 
 							RetrievalModes.External, 
@@ -425,8 +429,6 @@ class TempletGenerator {
 			Debug.Log ("Dont know witch contour to use.");
 			return false;
 		}
-
-		generatorState = State.NotSet;
 
 		Point2f center;
 		float radius;
