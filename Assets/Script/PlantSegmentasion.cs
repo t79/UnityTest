@@ -260,8 +260,8 @@ public class PlantSegmentasion : MonoBehaviour {
 		}
 		int roiHeight = plantBounds.Height + (int)(plantBounds.Height * plantPadding * 2);
 		int diffHeight = (roiHeight + roiY) - plantSegmentasionImage.Height;
-		if (diffWidth > 0) {
-			roiHeight -= diffWidth;
+		if (diffHeight > 0) {
+			roiHeight -= diffHeight;
 		}
 
 		OpenCvSharp.Rect roi = new OpenCvSharp.Rect (roiX, roiY, roiWidth, roiHeight);
