@@ -112,21 +112,25 @@ public class PlantSegmentasion : MonoBehaviour {
 					plantMaskCropt,
 					outsideMaskRatio);
 
+		LeafIndicator leafIndicator = 
+			new LeafIndicator (templetShapePath.Length, templetSizes.Length, numRotationSteps);
+
 		Mat matchinResultMat = Mat.Zeros(plantSegmentasionImage.Size(), plantSegmentasionImage.Type());
 		accumulatedLeafCandidates = Mat.Zeros (plantSegmentasionImage.Size (), plantSegmentasionImage.Type ());
 
 		double minValue, maxValue;
 		Point minLoc, maxLoc;
 
-		foreach (string path in templetShapePath) {
+		for (int shapeId = 0; shapeId < templetShapePath.Length; ++shapeId) {
 
-			if (!templetGenerator.LoadShape (path)) {
-				Debug.Log ("Could not generate templet from: " + path);
+				if (!templetGenerator.LoadShape (templetShapePath[shapeId])) {
+					Debug.Log ("Could not generate templet from: " + templetShapePath[shapeId]);
 				continue;
 			}
 
-			foreach (float templetSize in templetSizes) {
-
+			for (int sizeId = 0; sizeId < templetSizes.Length; ++sizeId) {
+				
+				float templetSize = templetSizes[sizeId];
 				if (templetSize > maxTempletPlantRatio) {
 					continue;
 				}
@@ -159,6 +163,8 @@ public class PlantSegmentasion : MonoBehaviour {
 					if (maxValue >= minMatchTreshold && maxValue <= maxMatchTreshold) {
 
 						if (templetGenerator.checkAgainstMask (maxLoc)) {
+
+							leafIndicator.selectTemplet (shapeId, sizeId, rotStep);
 
 							OpenCvSharp.Rect drawingRect = new OpenCvSharp.Rect (maxLoc.X + matchingRect.X, 
 																maxLoc.Y + matchingRect.Y, 
@@ -630,6 +636,20 @@ class TempletGenerator {
 		return true;
 	}
 }
+
+
+public class LeafIndicator {
+
+	public LeafIndicator(int numShapes, int numSizes, int numOrientations) {
+
+	}
+
+	public void selectTemplet(int shapeId, int sizeId, int orientasionId) {
+
+	}
+
+}
+
 
 public class RotatPoint {
 	struct cosSin {
