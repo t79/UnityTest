@@ -117,8 +117,8 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		for (int shapeId = 0; shapeId < templetShapePath.Length; ++shapeId) {
 
-				if (!templetGenerator.LoadShape (templetShapePath[shapeId])) {
-					Debug.Log ("Could not generate templet from: " + templetShapePath[shapeId]);
+			if (!templetGenerator.LoadShape (templetShapePath[shapeId])) {
+				Debug.Log ("Could not generate templet from: " + templetShapePath[shapeId]);
 				continue;
 			}
 
@@ -174,6 +174,13 @@ public class PlantSegmentasion : MonoBehaviour {
 		}
 			
 		showImages ();
+
+		Transform parent = transform.parent;
+		ScatterplotGraph[] canvas = parent.GetComponentsInChildren<ScatterplotGraph> ();
+		Debug.Log (canvas.Length);
+
+		canvas [0].setScatterplot (leafIndicator.getIndicatorArray());
+
 	}
 
 	private bool LoadImages() {
@@ -634,12 +641,24 @@ class TempletGenerator {
 
 public class LeafIndicator {
 
-	public LeafIndicator(int numShapes, int numSizes, int numOrientations) {
+	private float[] indicator;
+	private int numShapes;
+	private int numSizes;
+	private int numOrientations;
 
+	public LeafIndicator(int numShapes, int numSizes, int numOrientations) {
+		indicator = new float[numShapes * numSizes * numOrientations];
+		this.numShapes = numShapes;
+		this.numSizes = numSizes;
+		this.numOrientations = numOrientations;
 	}
 
 	public void selectTemplet(int shapeId, int sizeId, int orientasionId) {
+		indicator [shapeId * numSizes * numOrientations + sizeId * numOrientations + orientasionId] = 1;
+	}
 
+	public float[] getIndicatorArray() {
+		return indicator;
 	}
 
 }
