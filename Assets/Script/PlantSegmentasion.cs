@@ -7,17 +7,7 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	// --- Public Properties 
 
-
-	[Header("Plant file paths:")]
-	[Tooltip("File path to the plant image")]
-	public string plantImagePath = "";
-	[Tooltip("File path to the plant mask image")]
-	public string plantMaskPath = "";
-
-
 	[Header("Plant properties:")]
-	[Tooltip("The center point of the plant in the plant image coordinate.")]
-	public Vector2 plantCenter;
 	[Tooltip("The width of the plant center, where 1 is the diameter of the plant.")]
 	[Range(0.01f, 1.0f)]
 	public float plantCenterSize = 0.2f;
@@ -63,6 +53,8 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	// --- Private Properties
 
+	private Plant plant;
+
 	// image matrixes
 	private Mat plantImageBGR;
 	private Mat plantSegmentasionImage;
@@ -76,6 +68,8 @@ public class PlantSegmentasion : MonoBehaviour {
 	private OpenCvSharp.Rect plantBounds;
 
 	public void RunSegmentasion() {
+
+		plant = gameObject.GetComponentInParent<Plant> ();
 
 		if (!LoadImages()) {
 			Debug.Log ("Loading of images failed! Segmentasion aborted");
@@ -123,8 +117,8 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		for (int shapeId = 0; shapeId < templetShapePath.Length; ++shapeId) {
 
-				if (!templetGenerator.LoadShape (templetShapePath[shapeId])) {
-					Debug.Log ("Could not generate templet from: " + templetShapePath[shapeId]);
+			if (!templetGenerator.LoadShape (templetShapePath[shapeId])) {
+				Debug.Log ("Could not generate templet from: " + templetShapePath[shapeId]);
 				continue;
 			}
 
@@ -180,26 +174,33 @@ public class PlantSegmentasion : MonoBehaviour {
 		}
 			
 		showImages ();
+
+		Transform parent = transform.parent;
+		ScatterplotGraph[] canvas = parent.GetComponentsInChildren<ScatterplotGraph> ();
+		Debug.Log (canvas.Length);
+
+		canvas [0].setScatterplot (leafIndicator.getIndicatorArray());
+
 	}
 
 	private bool LoadImages() {
 
 		// Checking that the files exist.
-		if (!File.Exists (plantImagePath) || !File.Exists(plantMaskPath)) {
+		if (!File.Exists (plant.plantImagePath) || !File.Exists(plant.plantMaskPath)) {
 			Debug.Log ("Image or mask File do not exist!");
 			return false;
 		}
 
-		plantImageBGR = Cv2.ImRead (plantImagePath, ImreadModes.Color);
-		plantMask = Cv2.ImRead (plantMaskPath, ImreadModes.GrayScale);
+		plantImageBGR = Cv2.ImRead (plant.plantImagePath, ImreadModes.Color);
+		plantMask = Cv2.ImRead (plant.plantMaskPath, ImreadModes.GrayScale);
 
 		if (plantImageBGR.Empty()) {
-			Debug.Log ("No readable plant image file: " + plantImagePath);
+			Debug.Log ("No readable plant image file: " + plant.plantImagePath);
 			return false;
 		}
 
 		if (plantMask.Empty()) {
-			Debug.Log ("No readable plant mask file: " + plantMaskPath);
+			Debug.Log ("No readable plant mask file: " + plant.plantMaskPath);
 			return false;
 		}
 
@@ -218,7 +219,7 @@ public class PlantSegmentasion : MonoBehaviour {
 		Mat[] plantLabChannels = Cv2.Split (plantImageLAB);
 		plantSegmentasionImage = Cv2.Abs (plantLabChannels [1] - plantLabChannels [2]);
 
-		plantSegmentasionCenter = new Point (plantCenter.x, plantCenter.y);
+		plantSegmentasionCenter = new Point (plant.plantCenter.x, plant.plantCenter.y);
 
 	}
 
@@ -640,12 +641,24 @@ class TempletGenerator {
 
 public class LeafIndicator {
 
-	public LeafIndicator(int numShapes, int numSizes, int numOrientations) {
+	private float[] indicator;
+	private int numShapes;
+	private int numSizes;
+	private int numOrientations;
 
+	public LeafIndicator(int numShapes, int numSizes, int numOrientations) {
+		indicator = new float[numShapes * numSizes * numOrientations];
+		this.numShapes = numShapes;
+		this.numSizes = numSizes;
+		this.numOrientations = numOrientations;
 	}
 
 	public void selectTemplet(int shapeId, int sizeId, int orientasionId) {
+		indicator [shapeId * numSizes * numOrientations + sizeId * numOrientations + orientasionId] = 1;
+	}
 
+	public float[] getIndicatorArray() {
+		return indicator;
 	}
 
 }
