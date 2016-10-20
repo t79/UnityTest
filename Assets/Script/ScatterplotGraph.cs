@@ -25,8 +25,8 @@ public class ScatterplotGraph : MonoBehaviour {
 	}
 
 	public void setScatterplot() {
-		float[] values = {0, 0, 1, 1, 1, 0, 1 };
-		setScatterplot (values);
+		float[] testValues = {0, 0, 1, 1, 1, 0, 1 };
+		setScatterplot (testValues);
 	}
 
 	public void setScatterplot(float[] values) {
