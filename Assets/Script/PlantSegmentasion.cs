@@ -109,7 +109,9 @@ public class PlantSegmentasion : MonoBehaviour {
 		LeafIndicator leafIndicator = 
 			new LeafIndicator (templetShapePath.Length, templetSizes.Length, numRotationSteps);
 
-		Mat matchinResultMat = Mat.Zeros(plantSegmentasionImage.Size(), plantSegmentasionImage.Type());
+		ChamferMatching chamferMatching = new ChamferMatching (plantEdges);
+
+		Mat matchinResultMat = Mat.Zeros(plantSegmentasionImage.Size(), MatType.CV_32FC1);
 		accumulatedLeafCandidates = Mat.Zeros (plantSegmentasionImage.Size (), plantSegmentasionImage.Type ());
 
 		double minValue, maxValue;
@@ -150,18 +152,25 @@ public class PlantSegmentasion : MonoBehaviour {
 					Mat matchingResultSubMat = new Mat (matchinResultMat, matchingResultRect);
 					matchingResultSubMat.SetTo (new Scalar(0), null);
 
-					Cv2.MatchTemplate (matchingAreaMat, templet, matchingResultSubMat, TemplateMatchModes.CCorrNormed);
+					// ---------
+
+					matchingResultSubMat = chamferMatching.runMatching (
+						             			templetGenerator.getTempletContour (),
+												new Point(matchingRect.X, matchingRect.Y),
+						             			matchingResultSubMat);
+
+					//Cv2.MatchTemplate (matchingAreaMat, templet, matchingResultSubMat, TemplateMatchModes.CCorrNormed);
 
 					Cv2.MinMaxLoc (matchingResultSubMat, out minValue, out maxValue, out minLoc, out maxLoc);
 
 					if (maxValue >= minMatchTreshold && maxValue <= maxMatchTreshold) {
 
-						if (templetGenerator.checkAgainstMask (maxLoc)) {
+						if (templetGenerator.checkAgainstMask (minLoc)) {
 
 							leafIndicator.selectTemplet (shapeId, sizeId, rotStep);
 
-							OpenCvSharp.Rect drawingRect = new OpenCvSharp.Rect (maxLoc.X + matchingRect.X, 
-																maxLoc.Y + matchingRect.Y, 
+							OpenCvSharp.Rect drawingRect = new OpenCvSharp.Rect (minLoc.X + matchingRect.X, 
+																minLoc.Y + matchingRect.Y, 
 																templet.Width,
 																templet.Height);
 						
@@ -545,6 +554,11 @@ class TempletGenerator {
 		Cv2.DrawContours (templetFillMat, contours, 0, new Scalar (255), -1, LineTypes.Link8);
 
 
+		for (int i = 0; i < contours[0].Length; ++i) {
+			contours [0] [i].X -= boundBox.X;
+			contours [0] [i].Y -= boundBox.Y;
+		}
+			
 		matchingArea [0].X = (int)steam [1].X - shiftDistance;
 		matchingArea [0].Y = (int)steam [1].Y - shiftDistance;
 		matchingArea [1].X = matchingArea [0].X;
@@ -623,6 +637,14 @@ class TempletGenerator {
 		return templetContour;
 	}
 
+	public Point[] getTempletContour() {
+		if (generatorState < State.TempletSet) {
+			Debug.Log ("Templet not set.");
+			return new Point[0];
+		}
+		return contours [0];
+	}
+
 	public bool checkAgainstMask(Point location) {
 		if (generatorState < State.TempletSet) {
 			Debug.Log ("Templet not set.");
@@ -681,13 +703,39 @@ public class LeafIndicator {
 public class ChamferMatching {
 
 	Mat distantMap;
+	Mat scalarMat;
 
 	public ChamferMatching(Mat edgeMap) {
-		distantMap = Mat.Zeros (edgeMap.Size (), MatType.CV_32FC1);
-		Cv2.DistanceTransform (edgeMap, distantMap, DistanceTypes.L1, DistanceMaskSize.Mask3);
+
+		Mat edgeMapInvert = 255 - edgeMap;
+
+		scalarMat = Mat.Ones (edgeMap.Size (), MatType.CV_32FC1);
+
+		distantMap = Mat.Zeros (edgeMap.Size (), edgeMap.Type ()); //MatType.CV_32FC1);
+		Cv2.DistanceTransform (edgeMapInvert, distantMap, DistanceTypes.L1, DistanceMaskSize.Mask3);
+
+		Cv2.Normalize (distantMap, distantMap, 0, 1.0, NormTypes.MinMax);
 
 		Cv2.NamedWindow ("Distance Map", WindowMode.KeepRatio);
 		Cv2.ImShow ("Distance Map", distantMap);
+	}
+
+	public Mat runMatching (Point[] conture, Point recOrgin, Mat result){
+
+		for (int i = 0; i < conture.Length; ++i) {
+			Mat distMapSubRect = new Mat (distantMap, 
+				new OpenCvSharp.Rect(recOrgin + conture[i], result.Size()));
+			
+			Cv2.Add (result, distMapSubRect, result);
+		}
+
+		Mat scalarSubMat = new Mat (scalarMat, new OpenCvSharp.Rect (0, 0, result.Width, result.Height));
+		scalarSubMat.SetTo (new Scalar (conture.Length), null);
+
+		Mat ones = result.EmptyClone ();
+		ones.SetTo (new Scalar (conture.Length), null);
+		Cv2.Divide (result, scalarSubMat, result);
+		return result;
 	}
 
 }
