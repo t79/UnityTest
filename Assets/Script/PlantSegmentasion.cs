@@ -18,6 +18,9 @@ public class PlantSegmentasion : MonoBehaviour {
 	[Range(1, 10)]
 	public int reductionFactor = 4;
 
+	[Header("Edge Properties")]
+	public float edgeThreshold = 10;
+
 
 	[Header("Matching properites:")]
 	[Tooltip("How many steps when rottating the templet 360 degree.")]
@@ -291,27 +294,38 @@ public class PlantSegmentasion : MonoBehaviour {
 
 	private void MakeEdgeMat() {
 
-//		Mat sobelX = new Mat ();
-//		Cv2.Sobel (plantSegmentasionImage, sobelX, MatType.CV_16S, 1, 0, 3);
-//		Cv2.ConvertScaleAbs (sobelX, sobelX);
+		plantEdges = new Mat ();
+		Mat pImage = new Mat ();
+		plantSegmentasionImage.ConvertTo (pImage, MatType.CV_32FC1);
+
+		Mat sobelX = new Mat ();
+		Cv2.Sobel (pImage, sobelX, MatType.CV_32F, 1, 0, 3);
+		Cv2.Absdiff (sobelX, Scalar.All(0), sobelX);
+
+		Mat sobelY = new Mat ();
+		Cv2.Sobel (pImage, sobelY, MatType.CV_32F, 0, 1, 3);
+		Cv2.Absdiff (sobelY, Scalar.All(0), sobelY);
+
+		Cv2.Multiply (sobelX, sobelX, sobelX);
+		Cv2.Multiply (sobelY, sobelY, sobelY);
+		Cv2.Add (sobelX, sobelY, plantEdges);
+		Cv2.Sqrt (plantEdges, plantEdges);
+
+		Cv2.Threshold (plantEdges, plantEdges, edgeThreshold, 255.0, ThresholdTypes.BinaryInv);
+
+		plantEdges.ConvertTo (plantEdges, MatType.CV_8UC1);
+
+
+//		Mat mask = plantMaskCropt.Clone ();
 //
-//		Mat sobelY = new Mat ();
-//		Cv2.Sobel (plantSegmentasionImage, sobelY, MatType.CV_16S, 0, 1, 3);
-//		Cv2.ConvertScaleAbs (sobelY, sobelY);
+//		Cv2.Dilate (mask, mask, new Mat (), iterations: 2);
+//
+//		Scalar mean = plantSegmentasionImage.Mean (mask);
+//		double lowThreshold = 0.66 * mean.Val0;
+//		double highThreshold = 1.33 * mean.Val0;
 //
 //		plantEdges = new Mat ();
-//		Cv2.AddWeighted (sobelX, 0.5, sobelY, 0.5, 0, plantEdges);
-
-		Mat mask = plantMaskCropt.Clone ();
-
-		Cv2.Dilate (mask, mask, new Mat (), iterations: 2);
-
-		Scalar mean = plantSegmentasionImage.Mean (mask);
-		double lowThreshold = 0.66 * mean.Val0;
-		double highThreshold = 1.33 * mean.Val0;
-
-		plantEdges = new Mat ();
-		Cv2.Canny (plantSegmentasionImage, plantEdges, lowThreshold, highThreshold);
+//		Cv2.Canny (plantSegmentasionImage, plantEdges, lowThreshold, highThreshold);
 
 //		Cv2.Dilate (plantEdges, plantEdges, new Mat (), iterations: 2);
 //		Cv2.Erode (plantEdges, plantEdges, new Mat (), iterations: 2);
@@ -707,12 +721,12 @@ public class ChamferMatching {
 
 	public ChamferMatching(Mat edgeMap) {
 
-		Mat edgeMapInvert = 255 - edgeMap;
+		//Mat edgeMapInvert = 255 - edgeMap;
 
 		scalarMat = Mat.Ones (edgeMap.Size (), MatType.CV_32FC1);
 
 		distantMap = Mat.Zeros (edgeMap.Size (), edgeMap.Type ()); //MatType.CV_32FC1);
-		Cv2.DistanceTransform (edgeMapInvert, distantMap, DistanceTypes.L1, DistanceMaskSize.Mask3);
+		Cv2.DistanceTransform (edgeMap, distantMap, DistanceTypes.L1, DistanceMaskSize.Mask3);
 
 		Cv2.Normalize (distantMap, distantMap, 0, 1.0, NormTypes.MinMax);
 
