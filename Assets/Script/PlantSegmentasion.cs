@@ -313,6 +313,14 @@ public class PlantSegmentasion : MonoBehaviour {
 
 		Cv2.Threshold (plantEdges, plantEdges, edgeThreshold, 255.0, ThresholdTypes.BinaryInv);
 
+		Mat scaled = new Mat ();
+		Cv2.Resize (plantEdges, scaled, new Size (0, 0), 4, 4, InterpolationFlags.Nearest);
+		Cv2.Dilate (scaled, scaled, new Mat (), iterations: 2);
+		Cv2.Resize (scaled, plantEdges, new Size (0, 0), 0.25, 0.25, InterpolationFlags.Linear);
+		Cv2.Threshold (plantEdges, plantEdges, 127, 255.0, ThresholdTypes.Binary);
+
+//		Cv2.Dilate (plantEdges, plantEdges, new Mat (), iterations: 1);
+
 		plantEdges.ConvertTo (plantEdges, MatType.CV_8UC1);
 
 
